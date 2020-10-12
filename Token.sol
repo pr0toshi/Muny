@@ -62,18 +62,17 @@ uint256 internal constant _pointMultiplier = 10**8;
   event DividendClaim(address indexed owner, uint256 amount);
   event Disbursal(uint256 amount);
 
-struct Proposal {
-    uint256 id;
-    address proposer;
-    uint256 lock;
-    address[] fund;
-    uint16[] fee;
-    uint256 inflate;
-    uint256 lockmin;
-    uint256 lockmax;
-    uint256 lockxp;
-    bool canceled;
-    bool executed;
+    uint256 public proposal;
+    mapping(uint256 => address) public proposer;
+    mapping(uint256 => uint256) public lock;
+mapping(uint256 => address) public fund;
+    mapping(uint256 => uint16) public fee;
+    mapping(uint256 => uint256) public inflate;
+    mapping(uint256 => uint256) public lockmin;
+    mapping(uint256 => uint256) public lockmax;
+    mapping(uint256 => uint256) public lockxp;
+    mapping(uint256 => bool) public canceled;
+    mapping(uint256 => bool) public executed;
   }
 
     /**
@@ -254,13 +253,21 @@ _mint(amount);
      * - `sender` must have a balance of at least `amount`.
      */
 
-function newproposal(uint256 amount) public {
-_mint(amount);
-Llatestproposal + 1;
- uint256 lp latestproposal:
-    Proposal.id[latestproposal];
-    address proposer,;
-    uint256 eta;
+function newproposal(address fnd, uint16 fam, uint256 mint, uint256 lockmn, uint256 lockmx,uint256 lockx) public {
+proposal += 1;
+uint256 public proposal;
+    proposer[proposal] => msg.sender;
+    require(now => lock[proposal]);
+    if (fund[proposal] != null){
+fund[proposal] => fnd;
+}
+    fee[proposal] => fam;
+    inflate[proposal] => mint;
+    lockmin[proposal] => lockmn;
+    lockmax[proposal] => lockmx;
+    lockxp[proposal] => lockx;
+    canceled[proposal] => prop;
+    executed[proposal] => prop;
   }
     _totalDividendPoints += amount.mul(_pointMultiplier).div(_totalSupply);
     emit Disbursal(amount);
