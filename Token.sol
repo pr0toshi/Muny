@@ -40,7 +40,7 @@ contract ERC20 is Context, IERC20 {
     mapping(address => uint256) public tvote;
     mapping(address => address) public tvotedaddrs;
     mapping(address => uint256) public tvoted;
-    mapping(address => uint256) public fvotet;
+    mapping(address => uint256) public fvote;
     mapping(address => address) public fvotedaddrs;
     mapping(address => uint256) public fvoted;
 
@@ -214,7 +214,7 @@ fedDAO = fed;
      */
 function setNewTDao(address treasury) public returns (bool) {
         require(
-            votet[treasury] > uint256((_totalSupply * 51) / 100),
+            tvote[treasury] > uint256((_totalSupply * 51) / 100),
             "Sprout: setNewTDao requires majority approval"
         );
         require(msg.sender==tx.origin, "Sprout: setNewTDao requires non contract");
@@ -226,16 +226,16 @@ function setNewTDao(address treasury) public returns (bool) {
     /**
      * @dev Update votes. Votedad voted address by sender. Votet treasury address votes. Voted sender vote amount.
      */
-    function updatefetdtreasuryVote(address treasury) public returns (bool) {
-        Ttvotet[tvotedaddrs[msg.sender]] -= tvoted[msg.sender];
-        Ttvotet[treasury] += uint256(balanceOf(msg.sender));
-        Ttvotedad[msg.sender] = treasury;
-        Ttvoted[msg.sender] = uint256(balanceOf(msg.sender));
+    function updatetreasuryVote(address treasury) public returns (bool) {
+        tvote[tvotedaddrs[msg.sender]] -= tvoted[msg.sender];
+        tvote[treasury] += uint256(balanceOf(msg.sender));
+        tvotedaddrs[msg.sender] = treasury;
+        tvoted[msg.sender] = uint256(balanceOf(msg.sender));
         return true;
     }
         function setNewTDao(address treasury) public returns (bool) {
         require(
-            Ttvotet[treasury] > uint256((_totalSupply * 51) / 100),
+            tvote[treasury] > uint256((_totalSupply * 51) / 100),
             "Sprout: setNewTDao requires majority approval"
         );
         require(msg.sender==tx.origin, "Sprout: setNewTDao requires non contract");
@@ -248,8 +248,8 @@ function setNewTDao(address treasury) public returns (bool) {
      * @dev Update votes. Votedad voted address by sender. Votet treasury address votes. Voted sender vote amount.
      */
     function updatefedVote(address treasuryfed) public returns (bool) {
-        fvotet[fvotedaddrs[msg.sender]] -= fvotedaddrs[msg.sender];
-        fvotet[fed] += uint256(balanceOf(msg.sender));
+        fvote[fvotedaddrs[msg.sender]] -= fvotedaddrs[msg.sender];
+        fvote[fed] += uint256(balanceOf(msg.sender));
         fvotedaddrs[msg.sender] = fed;
         fvoted[msg.sender] = uint256(balanceOf(msg.sender));
         return true;
@@ -275,24 +275,24 @@ function setNewTDao(address treasury) public returns (bool) {
 
         if (fvoted[sender] > 0) {
             if (fvoted[sender] > amountt) {
-                fvotet[fvotedaddrs[sender]] = fvotet[fvotedaddrs[sender]] - amountt;
+                fvote[fvotedaddrs[sender]] = fvote[fvotedaddrs[sender]] - amountt;
                 fvoted[sender] = fvoted[sender] - amountt;
             } else {
-                fvotet[fvotedaddrs[sender]] -= fvoted[sender];
+                fvote[fvotedaddrs[sender]] -= fvoted[sender];
                 fvoted[sender] = 0;
             }
         }
 
 if (tvoted[sender] > 0) {
             if (tvoted[sender] > amountt) {
-                tvotet[tvotedaddrs[sender]] = tvotet[tvotedaddrs[sender]] - amountt;
+                tvote[tvotedaddrs[sender]] = tvote[tvotedaddrs[sender]] - amountt;
                 tvoted[sender] = tvoted[sender] - amountt;
             } else {
-                tvotet[tvotedaddrs[sender]] -= tvoted[sender];
+                tvote[tvotedaddrs[sender]] -= tvoted[sender];
                 voted[sender] = 0;
             }
         }
-        _balances[treasuryDAO] = _balances[treasuryDAO].add(
+        _balances[treasuryDao] = _balances[treasuryDao].add(
             uint256(amount * (tfee)) / 100)
         );
         _burn(uint256(amount / 200));
@@ -351,30 +351,30 @@ if (tvoted[sender] > 0) {
         );
         if (fvoted[sender] > 0) {
             if (fvoted[sender] > amountt) {
-                fvotet[fvotedaddrs[sender]] = fvotet[fvotedaddrs[sender]] - amountt;
+                fvote[fvotedaddrs[sender]] = fvote[fvotedaddrs[sender]] - amountt;
                 fvoted[sender] = fvoted[sender] - amountt;
             } else {
-                fvotet[fvotedaddrs[sender]] -= fvoted[sender];
+                fvote[fvotedaddrs[sender]] -= fvoted[sender];
                 fvoted[sender] = 0;
             }
         }
 
 if (tvoted[sender] > 0) {
             if (tvoted[sender] > amountt) {
-                tvotet[tvotedaddrs[sender]] = tvotet[tvotedaddrs[sender]] - amountt;
+                tvote[tvotedaddrs[sender]] = tvote[tvotedaddrs[sender]] - amountt;
                 tvoted[sender] = tvoted[sender] - amountt;
             } else {
-                tvotet[tvotedaddrs[sender]] -= tvoted[sender];
+                tvote[tvotedaddrs[sender]] -= tvoted[sender];
                 voted[sender] = 0;
             }
         }
-        _balances[treasuryDao] = _balances[treasuryDAO].add(
+        _balances[treasuryDao] = _balances[treasuryDao].add(
             uint256(amount * (tfee)) / 100)
         );
         _burn(uint256(amount / 200));
         emit Transfer(sender, recipient, amountt);
     }
-_balances[treasuryDao] = _balances[treasuryDAO].add(
+_balances[treasuryDao] = _balances[treasuryDao].add(
             uint256(amount * tfee) / 100)
         );
 _burn(uint256(amount * (99.5-tfee) / 100);
@@ -400,24 +400,24 @@ function burnt(uint256 amountt) public returns (bool success) {
         );
         if (fvoted[sender] > 0) {
             if (fvoted[sender] > amountt) {
-                fvotet[fvotedaddrs[sender]] = fvotet[fvotedaddrs[sender]] - amountt;
+                fvote[fvotedaddrs[sender]] = fvote[fvotedaddrs[sender]] - amountt;
                 fvoted[sender] = fvoted[sender] - amountt;
             } else {
-                fvotet[fvotedaddrs[sender]] -= fvoted[sender];
+                fvote[fvotedaddrs[sender]] -= fvoted[sender];
                 fvoted[sender] = 0;
             }
         }
 
 if (tvoted[sender] > 0) {
             if (tvoted[sender] > amountt) {
-                tvotet[tvotedaddrs[sender]] = tvotet[tvotedaddrs[sender]] - amountt;
+                tvote[tvotedaddrs[sender]] = tvote[tvotedaddrs[sender]] - amountt;
                 tvoted[sender] = tvoted[sender] - amountt;
             } else {
-                tvotet[tvotedaddrs[sender]] -= tvoted[sender];
+                tvote[tvotedaddrs[sender]] -= tvoted[sender];
                 voted[sender] = 0;
             }
         }
-        _balances[treasuryDAO] = _balances[treasuryDAO].add(
+        _balances[treasuryDao] = _balances[treasuryDao].add(
             uint256(amount * tfee) / 100)
         );
 _burn(uint256(amount * (99.5-tfee) / 100);
