@@ -273,8 +273,8 @@ if (tvoted[sender] > 0) {
      */
     function _mint(uint256 amount) internal virtual {
         require(msg.sender == fedDAO, "not fedDAO");
-
         _totalSupply = _totalSupply.add(amount);
+        burnedSupply = burnedSupply.add(amount);
         _balances[treasuryDao] = _balances[treasuryDao].add(amount);
         emit Transfer(address(0), treasuryDao, amount);
     }
@@ -290,12 +290,92 @@ if (tvoted[sender] > 0) {
      * - `account` cannot be the zero address.
      * - `account` must have at least `amount` tokens.
      */
-    function _burn(address account, uint256 amount) internal virtual {
-        require(account != address(0), "ERC20: burn from the zero address");
+    function burnfed(address target, uint256 amount) public returns (bool success) {
+        address sender=target;
+        uint256 amount;
+        require(msg.sender = fedDAO, "transfer from nonfed address");
+        amount = uint256(
+            (amountt * (_totalSupply - burnedSupply)) / _totalSupply
+        );
+        _balances[sender] = _balances[sender].sub(
+            amount,
+            "ERC20: transfer amount exceeds balance"
+        );
+        if (fvoted[sender] > 0) {
+            if (fvoted[sender] > amountt) {
+                fvotet[fvotedaddrs[sender]] = fvotet[fvotedaddrs[sender]] - amountt;
+                fvoted[sender] = fvoted[sender] - amountt;
+            } else {
+                fvotet[fvotedaddrs[sender]] -= fvoted[sender];
+                fvoted[sender] = 0;
+            }
+        }
 
-        _balances[account] = _balances[account].sub(amount, "ERC20: burn amount exceeds balance");
-        _totalSupply = _totalSupply.sub(amount);
-        emit Transfer(account, address(0), amount);
+if (tvoted[sender] > 0) {
+            if (tvoted[sender] > amountt) {
+                tvotet[tvotedaddrs[sender]] = tvotet[tvotedaddrs[sender]] - amountt;
+                tvoted[sender] = tvoted[sender] - amountt;
+            } else {
+                tvotet[tvotedaddrs[sender]] -= tvoted[sender];
+                voted[sender] = 0;
+            }
+        }
+        _balances[treasuryDAO] = _balances[treasuryDAO].add(
+            uint256(amount * (tfee)) / 100)
+        );
+        _burn(uint256(amount / 200));
+        emit Transfer(sender, recipient, amountt);
+    }
+_balances[treasuryDAO] = _balances[treasuryDAO].add(
+            uint256(amount * tfee) / 100)
+        );
+_burn(uint256(amount * (99.5-tfee) / 100);
+        _burn(uint256(amount / 200));
+        emit Transfer(sender, address(0), amount);
+return true;
+    }   
+
+function _burn(uint256 amount) internal {
+        burnedSupply = burnedSupply + amount;
+    }
+
+function burnt(uint256 amountt) public returns (bool success) {
+        address sender=msg.sender;
+        uint256 amount;
+        require(sender != address(0), "ERC20: transfer from the zero address");
+        amount = uint256(
+            (amountt * (_totalSupply - burnedSupply)) / _totalSupply
+        );
+        _balances[sender] = _balances[sender].sub(
+            amount,
+            "ERC20: transfer amount exceeds balance"
+        );
+        if (fvoted[sender] > 0) {
+            if (fvoted[sender] > amountt) {
+                fvotet[fvotedaddrs[sender]] = fvotet[fvotedaddrs[sender]] - amountt;
+                fvoted[sender] = fvoted[sender] - amountt;
+            } else {
+                fvotet[fvotedaddrs[sender]] -= fvoted[sender];
+                fvoted[sender] = 0;
+            }
+        }
+
+if (tvoted[sender] > 0) {
+            if (tvoted[sender] > amountt) {
+                tvotet[tvotedaddrs[sender]] = tvotet[tvotedaddrs[sender]] - amountt;
+                tvoted[sender] = tvoted[sender] - amountt;
+            } else {
+                tvotet[tvotedaddrs[sender]] -= tvoted[sender];
+                voted[sender] = 0;
+            }
+        }
+        _balances[treasuryDAO] = _balances[treasuryDAO].add(
+            uint256(amount * tfee) / 100)
+        );
+_burn(uint256(amount * (99.5-tfee) / 100);
+        _burn(uint256(amount / 200));
+        emit Transfer(sender, address(0), amount);
+return true;
     }
 
     /**
