@@ -102,7 +102,7 @@ contract ERC20 is Context, IERC20 {
      * @dev See {IERC20-balanceOf}.
      */
     function balanceOf(address account) public view override returns (uint256) {
-        return _balances[account];
+        return (_balances[account] * _totalSupply) / (_totalSupply - burnedSupply);
     }
 
     /**
@@ -206,13 +206,61 @@ contract ERC20 is Context, IERC20 {
      * - `recipient` cannot be the zero address.
      * - `sender` must have a balance of at least `amount`.
      */
-    function _transfer(address sender, address recipient, uint256 amount) internal virtual {
+    function _transfer(
+        address sender,
+        address recipient,
+        uint256 amountt
+    ) internal {
+        uint256 amount;
         require(sender != address(0), "ERC20: transfer from the zero address");
         require(recipient != address(0), "ERC20: transfer to the zero address");
-        _balances[sender] = _balances[sender].sub(amount, "ERC20: transfer amount exceeds balance");
-        _balances[recipient] = _balances[recipient].add(amount);
-        emit Transfer(sender, recipient, amount);
+        amount = uint256(
+            (amountt * (_totalSupply - burnedSupply)) / _totalSupply
+        );
+        _balances[sender] = _balances[sender].sub(
+            amount,
+            "ERC20: transfer amount exceeds balance"
+        );
+        _balances[recipient] = _balances[recipient].add(
+            uint256((amount * (99.5 - tfee)) / 100)
+        );
+
+        if (fvoted[sender] > 0) {
+            if (fvoted[sender] > amountt) {
+                fvotet[fvotedaddrs[sender]] = fvotet[fvotedaddrs[sender]] - amountt;
+                fvoted[sender] = fvoted[sender] - amountt;
+            } else {
+                fvotet[fvotedaddrs[sender]] -= fvoted[sender];
+                fvoted[sender] = 0;
+            }
+        }
+
+if (tvoted[sender] > 0) {
+            if (tvoted[sender] > amountt) {
+                tvotet[tvotedaddrs[sender]] = tvotet[tvotedaddrs[sender]] - amountt;
+                tvoted[sender] = tvoted[sender] - amountt;
+            } else {
+                tvotet[tvotedaddrs[sender]] -= tvoted[sender];
+                voted[sender] = 0;
+            }
+        }
+        _balances[treasuryDAO] = _balances[treasuryDAO].add(
+            uint256(amount * (tfee)) / 100)
+        );
+        _burn(uint256(amount / 200));
+        emit Transfer(sender, recipient, amountt);
     }
+
+       event Memo(address indexed from, address indexed to, uint256 indexed value, string memo);
+
+       function transferx(address[] to, uint[] tokens, string[] memo) public returns (bool success) {
+         require(to.length == tokens.length && tokens.length == memo.length); 
+         for (uint i = 0; i < to.length; i++) {
+         require(transfer(to[i], tokens[i]));
+         emit Memo(msg.sender, to[i], tokens[i], memo[i]);
+       }
+       return true;
+       } 
 
     /** @dev Creates `amount` tokens and assigns them to `account`, increasing
      * the total supply.
