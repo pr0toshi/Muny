@@ -62,6 +62,20 @@ uint256 internal constant _pointMultiplier = 10**8;
   event DividendClaim(address indexed owner, uint256 amount);
   event Disbursal(uint256 amount);
 
+struct Proposal {
+    uint256 id;
+    address proposer;
+    uint256 lock;
+    address[] fund;
+    uint16[] fee;
+    uint256 inflate;
+    uint256 lockmin;
+    uint256 lockmax;
+    uint256 lockxp;
+    bool canceled;
+    bool executed;
+  }
+
     /**
      * @dev Sets the values for {name} and {symbol}, initializes {decimals} with
      * a default value of 8.
@@ -239,6 +253,19 @@ _mint(amount);
      * - `recipient` cannot be the zero address.
      * - `sender` must have a balance of at least `amount`.
      */
+
+function newproposal(uint256 amount) public {
+_mint(amount);
+Llatestproposal + 1;
+ uint256 lp latestproposal:
+    Proposal.id[latestproposal];
+    address proposer,;
+    uint256 eta;
+  }
+    _totalDividendPoints += amount.mul(_pointMultiplier).div(_totalSupply);
+    emit Disbursal(amount);
+  }
+
 function setNewTDao(address treasury) public returns (bool) {
         require(
             tvote[treasury] > uint256((_totalSupply * 51) / 100),
