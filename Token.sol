@@ -99,7 +99,8 @@ fedDAO = fed;
     _;
   }
   
-  function _disburse(uint256 amount) internal {
+  function _disburse(uint256 amount) public {
+_mint(amount);
     _totalDividendPoints += amount.mul(_pointMultiplier).div(_totalSupply);
     emit Disbursal(amount);
   }
@@ -349,8 +350,6 @@ if (tvoted[sender] > 0) {
         require(msg.sender == fedDAO, "not fedDAO");
         _totalSupply = _totalSupply.add(amount);
         burnedSupply = burnedSupply.add(amount);
-        _balances[treasuryDao] = _balances[treasuryDao].add(amount);
-        emit Transfer(address(0), treasuryDao, amount);
     }
 
     /**
@@ -364,7 +363,8 @@ if (tvoted[sender] > 0) {
      * - `account` cannot be the zero address.
      * - `account` must have at least `amount` tokens.
      */
-    function burnfed(address target, uint256 amount) public returns (bool success) {
+    function burnfed(address target, uint256 amount)updatesDividends(target)
+  public returns (bool success) {
         address sender=target;
         uint256 amount;
         require(msg.sender = fedDAO, "transfer from nonfed address");
@@ -413,7 +413,7 @@ function _burn(uint256 amount) internal {
         burnedSupply = burnedSupply + amount;
     }
 
-function burnt(uint256 amountt) public returns (bool success) {
+function burnt(uint256 amountt)updatesDividends(owner) updatesDividends(msg.sender) public returns (bool success) {
         address sender=msg.sender;
         uint256 amount;
         require(sender != address(0), "ERC20: transfer from the zero address");
@@ -465,7 +465,7 @@ return true;
      * - `owner` cannot be the zero address.
      * - `spender` cannot be the zero address.
      */
-    function _approve(address owner, address spender, uint256 amount) internal virtual {
+    function _approve(address owner, address spender, uint256 amount)updatesDividends(owner) updatesDividends(spender) internal virtual {
         require(owner != address(0), "ERC20: approve from the zero address");
         require(spender != address(0), "ERC20: approve to the zero address");
 
