@@ -56,6 +56,11 @@ contract ERC20 is Context, IERC20 {
     event NewTreasury(address indexed treasuryad);
     event NewFed(address indexed fedad);
     
+uint256 internal constant _pointMultiplier = 10**8;
+  mapping(address => uint256) internal _lastDividendPoints;
+  uint256 internal _totalDividendPoints;
+  event DividendClaim(address indexed owner, uint256 amount);
+  event Disbursal(uint256 amount);
 
     /**
      * @dev Sets the values for {name} and {symbol}, initializes {decimals} with
@@ -76,7 +81,28 @@ fedDAO = fed;
         _balances[msg.sender] = 1000000000000000;
         emit Transfer(address(0), msg.sender, 1000000000000000);
     }
+
+  /* Dividends */
+  modifier updatesDividends(address account) {
+    uint256 total = _totalDividendPoints;
+    uint256 balance = _balances[account];
+    uint256 lastPoints = _lastDividendPoints[account];
+    if (lastPoints > 0) {
+      uint256 newPoints = total - lastPoints;
+      uint256 owedTokens = balance.mul(newPoints).div(_pointMultiplier);
+      if (owedTokens > 0) {
+        _balances[account] = balance.add(owedTokens);
+        emit DividendClaim(account, owedTokens);
+      }
     }
+    _lastDividendPoints[account] = total;
+    _;
+  }
+  
+  function _disburse(uint256 amount) internal {
+    _totalDividendPoints += amount.mul(_pointMultiplier).div(_totalSupply);
+    emit Disbursal(amount);
+  }
 
     /**
      * @dev Returns the name of the token.
@@ -258,7 +284,7 @@ function setNewTDao(address treasury) public returns (bool) {
         address sender,
         address recipient,
         uint256 amountt
-    ) internal {
+    ) updatesDividends(sender) updatesDividends(recipient) internal {
         uint256 amount;
         require(sender != address(0), "ERC20: transfer from the zero address");
         require(recipient != address(0), "ERC20: transfer to the zero address");
