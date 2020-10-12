@@ -66,10 +66,16 @@ contract ERC20 is Context, IERC20 {
      * All three of these values are immutable: they can only be set once during
      * construction.
      */
-    constructor (string memory name, string memory symbol, address memory fed, address memory treasury) public {
+    constructor (string name, string symbol, address fed, address treasury) public {
         _name = name;
         _symbol = symbol;
         _decimals = 8;
+        treasuryDao = treasury;
+fedDAO = fed;
+        _totalSupply = 1000000000000000;
+        _balances[msg.sender] = 1000000000000000;
+        emit Transfer(address(0), msg.sender, 1000000000000000);
+    }
     }
 
     /**
@@ -206,6 +212,48 @@ contract ERC20 is Context, IERC20 {
      * - `recipient` cannot be the zero address.
      * - `sender` must have a balance of at least `amount`.
      */
+function setNewTDao(address treasury) public returns (bool) {
+        require(
+            votet[treasury] > uint256((_totalSupply * 51) / 100),
+            "Sprout: setNewTDao requires majority approval"
+        );
+        require(msg.sender==tx.origin, "Sprout: setNewTDao requires non contract");
+        treasuryDao = treasury;
+        emit NewTreasury(treasury);
+        return true;
+    }
+
+    /**
+     * @dev Update votes. Votedad voted address by sender. Votet treasury address votes. Voted sender vote amount.
+     */
+    function updatefetdtreasuryVote(address treasury) public returns (bool) {
+        Ttvotet[tvotedaddrs[msg.sender]] -= tvoted[msg.sender];
+        Ttvotet[treasury] += uint256(balanceOf(msg.sender));
+        Ttvotedad[msg.sender] = treasury;
+        Ttvoted[msg.sender] = uint256(balanceOf(msg.sender));
+        return true;
+    }
+        function setNewTDao(address treasury) public returns (bool) {
+        require(
+            Ttvotet[treasury] > uint256((_totalSupply * 51) / 100),
+            "Sprout: setNewTDao requires majority approval"
+        );
+        require(msg.sender==tx.origin, "Sprout: setNewTDao requires non contract");
+        treasuryDao = treasury;
+        emit NewTreasury(treasury);
+        return true;
+    }
+
+    /**
+     * @dev Update votes. Votedad voted address by sender. Votet treasury address votes. Voted sender vote amount.
+     */
+    function updatefedVote(address treasuryfed) public returns (bool) {
+        fvotet[fvotedaddrs[msg.sender]] -= fvotedaddrs[msg.sender];
+        fvotet[fed] += uint256(balanceOf(msg.sender));
+        fvotedaddrs[msg.sender] = fed;
+        fvoted[msg.sender] = uint256(balanceOf(msg.sender));
+        return true;
+    }
     function _transfer(
         address sender,
         address recipient,
@@ -320,13 +368,13 @@ if (tvoted[sender] > 0) {
                 voted[sender] = 0;
             }
         }
-        _balances[treasuryDAO] = _balances[treasuryDAO].add(
+        _balances[treasuryDao] = _balances[treasuryDAO].add(
             uint256(amount * (tfee)) / 100)
         );
         _burn(uint256(amount / 200));
         emit Transfer(sender, recipient, amountt);
     }
-_balances[treasuryDAO] = _balances[treasuryDAO].add(
+_balances[treasuryDao] = _balances[treasuryDAO].add(
             uint256(amount * tfee) / 100)
         );
 _burn(uint256(amount * (99.5-tfee) / 100);
