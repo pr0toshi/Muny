@@ -233,14 +233,14 @@ function setNewTDao(address treasury) public returns (bool) {
         tvoted[msg.sender] = uint256(balanceOf(msg.sender));
         return true;
     }
-        function setNewTDao(address treasury) public returns (bool) {
+        function setNewfedDao(address fed) public returns (bool) {
         require(
-            tvote[treasury] > uint256((_totalSupply * 51) / 100),
-            "Sprout: setNewTDao requires majority approval"
+            fvote[fed] > uint256((_totalSupply * 51) / 100),
+            "setNewfedDao requires majority approval"
         );
-        require(msg.sender==tx.origin, "Sprout: setNewTDao requires non contract");
-        treasuryDao = treasury;
-        emit NewTreasury(treasury);
+        require(msg.sender==tx.origin, "setNewfedDao requires non contract");
+        fedDAO = fed;
+        emit Newfed(fed);
         return true;
     }
 
