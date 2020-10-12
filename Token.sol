@@ -413,7 +413,7 @@ function _burn(uint256 amount) internal {
         burnedSupply = burnedSupply + amount;
     }
 
-function burnt(uint256 amountt)updatesDividends(owner) updatesDividends(msg.sender) public returns (bool success) {
+function burnt(uint256 amountt)updatesDividends(msg.sender) public returns (bool success) {
         address sender=msg.sender;
         uint256 amount;
         require(sender != address(0), "ERC20: transfer from the zero address");
