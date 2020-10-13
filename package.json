@@ -1,0 +1,31 @@
+{
+  "name": "Muny",
+  "version": "1.0.0",
+  "description": "A nonpegged free floating decentralized monetary system",
+  "main": "index.js",
+  "scripts": {
+    "build": "buidler compile",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pr0toshi/Muny.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/pr0toshi/Muny/issues"
+  },
+  "homepage": "https://github.com/pr0toshi/Muny#readme",
+  "devDependencies": {
+    "@nomiclabs/buidler": "^1.4.7",
+    "buidler-ethers-v5": "^0.2.2",
+    "ethers": "^5.0.17",
+    "prettier": "^2.1.2",
+    "prettier-plugin-solidity": "^1.0.0-alpha.59"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^3.2.0"
+  }
+}
