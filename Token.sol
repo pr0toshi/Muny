@@ -255,22 +255,34 @@ _mint(amount);
 
 function newproposal(address fnd, uint16 fam, uint256 mint, uint256 lockmn, uint256 lockmx,uint256 lockx) public {
 proposal += 1;
-uint256 public proposal;
     proposer[proposal] => msg.sender;
-    require(now => lock[proposal]);
+    lock[proposal] = now + currentlock );
+fund[proposal] = fnd;
+    fee[proposal] = fam;
+    inflate[proposal] = mint;
+    lockmin[proposal] = lockmn;
+    lockmax[proposal] = lockmx;
+    lockxp[proposal] = lockx;
+  }
+    emit newproposal(proposal);
+  }
+
+function executeproposal(uint256 id) public {
+ require(now => lock[proposal]);
+require(msg.sender => fedDAOlock[proposal]);
     if (fund[proposal] != null){
 fund[proposal] => fnd;
 }
-    fee[proposal] => fam;
-    inflate[proposal] => mint;
-    lockmin[proposal] => lockmn;
-    lockmax[proposal] => lockmx;
-    lockxp[proposal] => lockx;
-    canceled[proposal] => prop;
-    executed[proposal] => prop;
+    proposer[proposal] => msg.sender;
+    lock[proposal] = now + currentlock );
+fund[proposal] = fnd;
+    fee[proposal] = fam;
+    inflate[proposal] = mint;
+    lockmin[proposal] = lockmn;
+    lockmax[proposal] = lockmx;
+    lockxp[proposal] = lockx;
   }
-    _totalDividendPoints += amount.mul(_pointMultiplier).div(_totalSupply);
-    emit Disbursal(amount);
+    emit newproposal(proposal);
   }
 
 function setNewTDao(address treasury) public returns (bool) {
