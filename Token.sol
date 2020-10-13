@@ -66,6 +66,7 @@ uint256 internal constant _pointMultiplier = 10**8;
     mapping(uint256 => address) public proposer;
     mapping(uint256 => uint256) public lock;
 mapping(uint256 => address) public fund;
+    mapping(uint256 => uint256) public mintam;
     mapping(uint256 => uint16) public fee;
     mapping(uint256 => uint256) public inflate;
     mapping(uint256 => uint256) public lockmin;
@@ -253,12 +254,13 @@ _mint(amount);
      * - `sender` must have a balance of at least `amount`.
      */
 
-function newproposal(address fnd, uint16 fam, uint256 mint, uint256 lockmn, uint256 lockmx,uint256 lockx) public {
+function newproposal(address fnd, uint16 fam, uint256 mint, uint256 manm, uint256 lockmn, uint256 lockmx,uint256 lockx) public {
 proposal += 1;
     proposer[proposal] => msg.sender;
-    lock[proposal] = now + currentlock );
+    lock[proposal] = now + currentlock;
 fund[proposal] = fnd;
     fee[proposal] = fam;
+mintam[proposal] =  mintam ;
     inflate[proposal] = mint;
     lockmin[proposal] = lockmn;
     lockmax[proposal] = lockmx;
@@ -269,20 +271,26 @@ fund[proposal] = fnd;
 
 function executeproposal(uint256 id) public {
  require(now => lock[proposal]);
-require(msg.sender => fedDAOlock[proposal]);
-    if (fund[proposal] != null){
-fund[proposal] => fnd;
+require(msg.sender = fedDAO);
+require(msg.sender => proposer[proposal]);
+    if (mintam[proposal] != null){
+_mint(mintam[proposal]);
+_balances[treasuryDao] = _balances[treasuryDao].add([proposal]);
+}p
+if (pfee[proposal] != null){
+fee = pfee[proposal];
 }
-    proposer[proposal] => msg.sender;
-    lock[proposal] = now + currentlock );
-fund[proposal] = fnd;
-    fee[proposal] = fam;
-    inflate[proposal] = mint;
-    lockmin[proposal] = lockmn;
-    lockmax[proposal] = lockmx;
-    lockxp[proposal] = lockx;
-  }
-    emit newproposal(proposal);
+    if (inflate[proposal] != null){
+_disburse(inflate[proposal]);
+} 
+if (lockmin[proposal]!= null){
+require(lock[proposal]=>3 days);
+   tlock = lockmin[proposal];
+}
+if (lockxp[proposal]] != null){
+propxp = lockxp[proposal]
+}
+    emit proposalexecuted(proposal);
   }
 
 function setNewTDao(address treasury) public returns (bool) {
