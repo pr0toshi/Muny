@@ -109,24 +109,39 @@ contract ERC20 is Context, IERC20 {
     }
 
     /* Dividends */
+    /**
+     * @dev Modifier to update the balance of an account with any dividends
+     * owed to it.
+     *
+     * Based on Nick Johnson's Dividend-Bearing Tokens article
+     * https://medium.com/weka/dividend-bearing-tokens-on-ethereum-42d01c710657
+     *
+     * Note: This MUST be applied to every function which can alter a user's balance,
+     * except where tokens are minted from the null address.
+     */
     modifier updatesDividends(address account) {
-        uint256 balance = _balances[account];
+        uint256 totalPoints = _totalDividendPoints;
         uint256 lastPoints = _lastDividendPoints[account];
         if (lastPoints > 0) {
-            uint256 newPoints = _totalDividendPoints.sub(lastPoints);
-            uint256 owedTokens = balance.mul(newPoints).div(_pointMultiplier);
-            if (owedTokens > 0) {
-                _balances[account] = balance.add(owedTokens);
-                emit DividendClaim(account, owedTokens);
-            }
+            uint256 balance = _balances[account];
+            uint256 newPoints = totalPoints.sub(lastPoints);
+            uint256 dividendsOwed = balance.mul(newPoints).div(_pointMultiplier);
+            _balances[account] = balance.add(dividendsOwed);
         }
-        _lastDividendPoints[account] = _totalDividendPoints;
+        _lastDividendPoints[account] = totalPoints;
         _;
     }
 
+    function dividendsOwed(address account) external view returns (uint256) {
+        uint256 newPoints = _totalDividendPoints.sub(_lastDividendPoints[account]);
+        return _balances[account].mul(newPoints).div(_pointMultiplier);
+    }
+
     function _disburse(uint256 amount) public {
+        _totalDividendPoints = _totalDividendPoints.add(
+          amount.mul(_pointMultiplier).div(_totalSupply)
+        );
         _mint(amount);
-        _totalDividendPoints += amount.mul(_pointMultiplier).div(_totalSupply);
         emit Disbursal(amount);
     }
 
