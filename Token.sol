@@ -64,7 +64,7 @@ uint256 internal constant _pointMultiplier = 10**8;
   event DividendClaim(address indexed owner, uint256 amount);
   event Disbursal(uint256 amount);
 
-    uint256 public proposal;
+    uint256 public prop;
     mapping(uint256 => address) public proposer;
     mapping(uint256 => uint256) public lock;
     mapping(uint256 => uint256) public mintam;
@@ -259,7 +259,8 @@ _mint(amount);
      */
 
 function newproposal(uint256 fnd, uint16 fam, uint256 mint, uint256 lockmn, uint256 lockxp) public {
-proposal += 1;
+prop += 1;
+proposal = prop;
     proposer[proposal] = msg.sender;
     lock[proposal] = now + tlock;
     fee[proposal] = fam;
@@ -271,32 +272,34 @@ mintam[proposal] =  fnd;
     emit newproposal(proposal);
   }
 
-function executeproposal(uint256 id) public {
- require(now => lock[proposal]);
+function executeproposal(uint256 proposal) public {
+ require(now => lock[proposal] && lock[proposal]+ lockxp[proposal] => now );
+require(executed[proposal] = false);
 require(msg.sender = fedDAO);
 require(msg.sender = proposer[proposal]);
-    if (mintam[proposal] != null){
+    if (mintam[proposal] != 0){
 _mint(mintam[proposal]);
 _balances[treasuryDao] = _balances[treasuryDao].add(mintam[proposal]);
 }
-if (pfee[proposal] != null && 2500=>pfee[proposal]){
+if (pfee[proposal] != 9999 && 2500=>pfee[proposal]){
 fee = pfee[proposal];
 }
-    if (inflate[proposal] != null){
+    if (inflate[proposal] != 0){
 _disburse(inflate[proposal]);
 } 
-if (lockmin[proposal]!= null){
+if (lockmin[proposal]!= 0){
 require(lockmin[proposal]=>3 days);
    tlock = lockmin[proposal];
 }
-if (lockxp[proposal]] != null){
+if (lockxp[proposal]] != 0){
 lockxp = lockx[proposal];
 }
+executed[proposal] = true);
     emit proposalexecuted(proposal);
   }
 
 function setNewTDao(address treasury) public returns (bool) {
-        require(
+        require(lock[proposal])
             tvote[treasury] > uint256((_totalSupply * 51) / 100),
             "Sprout: setNewTDao requires majority approval"
         );
