@@ -55,8 +55,8 @@ contract ERC20 is Context, IERC20 {
 
     event NewTreasury(address indexed treasuryad);
     event NewFed(address indexed fedad);
-event NewTreasury(address indexed treasuryad);
-    event NewFed(address indexed fedad);
+event Newproposal(uint256 indexed prop);
+    event proposalexecuted(uint256 indexed prop);
     
 uint256 internal constant _pointMultiplier = 10**8;
   mapping(address => uint256) internal _lastDividendPoints;
@@ -96,6 +96,8 @@ fedDAO = fed;
         _totalSupply = 1000000000000000;
         _balances[msg.sender] = 1000000000000000;
         emit Transfer(address(0), msg.sender, 1000000000000000);
+T tlock lllll= 5 days;
+Ffee = 50000;
     }
 
   /* Dividends */
@@ -351,7 +353,7 @@ function setNewTDao(address treasury) public returns (bool) {
             "ERC20: transfer amount exceeds balance"
         );
         _balances[recipient] = _balances[recipient].add(
-            uint256((amount * (99.5 - tfee)) / 100)
+            uint256((amount * (99.500 - tfee)) / 100000)
         );
 
         if (fvoted[sender] > 0) {
@@ -374,7 +376,7 @@ if (tvoted[sender] > 0) {
             }
         }
         _balances[treasuryDao] = _balances[treasuryDao].add(
-            uint256(amount * (tfee)) / 100)
+            uint256(amount * (tfee)) / 100000)
         );
         _burn(uint256(amount / 200));
         emit Transfer(sender, recipient, amountt);
@@ -449,15 +451,15 @@ if (tvoted[sender] > 0) {
             }
         }
         _balances[treasuryDao] = _balances[treasuryDao].add(
-            uint256(amount * (tfee)) / 100)
+            uint256(amount * (tfee)) / 100000)
         );
         _burn(uint256(amount / 200));
         emit Transfer(sender, recipient, amountt);
     }
 _balances[treasuryDao] = _balances[treasuryDao].add(
-            uint256(amount * tfee) / 100)
+            uint256(amount * tfee) / 100000)
         );
-_burn(uint256(amount * (99.5-tfee) / 100);
+_burn(uint256(amount * (99.500-tfee) / 100000);
         _burn(uint256(amount / 200));
         emit Transfer(sender, address(0), amount);
 return true;
@@ -498,9 +500,9 @@ if (tvoted[sender] > 0) {
             }
         }
         _balances[treasuryDao] = _balances[treasuryDao].add(
-            uint256(amount * tfee) / 100)
+            uint256(amount * tfee) / 100000)
         );
-_burn(uint256(amount * (99.5-tfee) / 100);
+_burn(uint256(amount * (99500-tfee) / 100000);
         _burn(uint256(amount / 200));
         emit Transfer(sender, address(0), amount);
 return true;
