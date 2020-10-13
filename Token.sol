@@ -96,7 +96,7 @@ fedDAO = fed;
         _balances[msg.sender] = 1000000000000000;
         emit Transfer(address(0), msg.sender, 1000000000000000);
 tlock = 5 days;
-Ffee = 500;
+fee = 500;
     }
 
   /* Dividends */
