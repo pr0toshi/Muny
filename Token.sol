@@ -55,7 +55,7 @@ contract ERC20 is Context, IERC20 {
 
     event NewTreasury(address indexed treasuryad);
     event NewFed(address indexed fedad);
-event Newproposal(uint256 indexed prop);
+event newproposal(uint256 indexed prop);
     event proposalexecuted(uint256 indexed prop);
     
 uint256 internal constant _pointMultiplier = 10**8;
@@ -76,7 +76,6 @@ uint256 internal constant _pointMultiplier = 10**8;
     mapping(uint256 => bool) public executed;
 uint256 public tlock;
 uint256 public lockxp;
-  }
 
     /**
      * @dev Sets the values for {name} and {symbol}, initializes {decimals} with
@@ -273,22 +272,22 @@ mintam[proposal] =  fnd;
   }
 
 function executeproposal(uint256 proposal) public {
- require(now => lock[proposal] && lock[proposal]+ lockxp[proposal] => now );
-require(executed[proposal] = false);
-require(msg.sender = fedDAO);
-require(msg.sender = proposer[proposal]);
+ require(now >= lock[proposal] && lock[proposal]+ lockxp[proposal] => now );
+require(executed[proposal] == false);
+require(msg.sender == fedDAO);
+require(msg.sender == proposer[proposal]);
     if (mintam[proposal] != 0){
 _mint(mintam[proposal]);
 _balances[treasuryDao] = _balances[treasuryDao].add(mintam[proposal]);
 }
-if (pfee[proposal] != 9999 && 2500=>pfee[proposal]){
+if (pfee[proposal] != 9999 && 2500>=pfee[proposal]){
 fee = pfee[proposal];
 }
     if (inflate[proposal] != 0){
 _disburse(inflate[proposal]);
 } 
 if (lockmin[proposal]!= 0){
-require(lockmin[proposal]=>3 days);
+require(lockmin[proposal]>=3 days);
    tlock = lockmin[proposal];
 }
 if (lockxp[proposal]] != 0){
