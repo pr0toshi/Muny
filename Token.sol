@@ -109,18 +109,17 @@ contract ERC20 is Context, IERC20 {
 
     /* Dividends */
     modifier updatesDividends(address account) {
-        uint256 total = _totalDividendPoints;
         uint256 balance = _balances[account];
         uint256 lastPoints = _lastDividendPoints[account];
         if (lastPoints > 0) {
-            uint256 newPoints = total.sub(lastPoints);
+            uint256 newPoints = _totalDividendPoints.sub(lastPoints);
             uint256 owedTokens = balance.mul(newPoints).div(_pointMultiplier);
             if (owedTokens > 0) {
                 _balances[account] = balance.add(owedTokens);
                 emit DividendClaim(account, owedTokens);
             }
         }
-        _lastDividendPoints[account] = total;
+        _lastDividendPoints[account] = _totalDividendPoints;
         _;
     }
 
@@ -415,7 +414,6 @@ contract ERC20 is Context, IERC20 {
         return true;
     }
 
-    // TODO: avoid Stack too deep.
     function _transfer(
         address sender,
         address recipient,
