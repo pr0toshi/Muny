@@ -55,6 +55,8 @@ contract ERC20 is Context, IERC20 {
 
     event NewTreasury(address indexed treasuryad);
     event NewFed(address indexed fedad);
+event NewTreasury(address indexed treasuryad);
+    event NewFed(address indexed fedad);
     
 uint256 internal constant _pointMultiplier = 10**8;
   mapping(address => uint256) internal _lastDividendPoints;
@@ -65,15 +67,15 @@ uint256 internal constant _pointMultiplier = 10**8;
     uint256 public proposal;
     mapping(uint256 => address) public proposer;
     mapping(uint256 => uint256) public lock;
-mapping(uint256 => address) public fund;
     mapping(uint256 => uint256) public mintam;
     mapping(uint256 => uint16) public fee;
     mapping(uint256 => uint256) public inflate;
     mapping(uint256 => uint256) public lockmin;
-    mapping(uint256 => uint256) public lockmax;
-    mapping(uint256 => uint256) public lockxp;
+    mapping(uint256 => uint256) public lockx;
     mapping(uint256 => bool) public canceled;
     mapping(uint256 => bool) public executed;
+uint256 public tlock;
+uint256 public lockxp;
   }
 
     /**
@@ -254,17 +256,15 @@ _mint(amount);
      * - `sender` must have a balance of at least `amount`.
      */
 
-function newproposal(address fnd, uint16 fam, uint256 mint, uint256 manm, uint256 lockmn, uint256 lockmx,uint256 lockx) public {
+function newproposal(uint256 fnd, uint16 fam, uint256 mint, uint256 lockmn, uint256 lockxp) public {
 proposal += 1;
     proposer[proposal] => msg.sender;
-    lock[proposal] = now + currentlock;
-fund[proposal] = fnd;
+    lock[proposal] = now + tlock;
     fee[proposal] = fam;
-mintam[proposal] =  mintam ;
+mintam[proposal] =  fnd;
     inflate[proposal] = mint;
     lockmin[proposal] = lockmn;
-    lockmax[proposal] = lockmx;
-    lockxp[proposal] = lockx;
+    lockx[proposal] = lockxp;
   }
     emit newproposal(proposal);
   }
@@ -272,11 +272,11 @@ mintam[proposal] =  mintam ;
 function executeproposal(uint256 id) public {
  require(now => lock[proposal]);
 require(msg.sender = fedDAO);
-require(msg.sender => proposer[proposal]);
+require(msg.sender = proposer[proposal]);
     if (mintam[proposal] != null){
 _mint(mintam[proposal]);
-_balances[treasuryDao] = _balances[treasuryDao].add([proposal]);
-}p
+_balances[treasuryDao] = _balances[treasuryDao].add(mintam[proposal]);
+}
 if (pfee[proposal] != null){
 fee = pfee[proposal];
 }
@@ -288,7 +288,7 @@ require(lock[proposal]=>3 days);
    tlock = lockmin[proposal];
 }
 if (lockxp[proposal]] != null){
-propxp = lockxp[proposal]
+lockxp = lockx[proposal];
 }
     emit proposalexecuted(proposal);
   }
