@@ -294,7 +294,7 @@ require(lockmin[proposal]=>3 days);
 if (lockxp[proposal]] != 0){
 lockxp = lockx[proposal];
 }
-executed[proposal] = true);
+executed[proposal] = true;
     emit proposalexecuted(proposal);
   }
 
