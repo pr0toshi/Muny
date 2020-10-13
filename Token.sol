@@ -387,7 +387,7 @@ if (tvoted[sender] > 0) {
 
        event Memo(address indexed from, address indexed to, uint256 indexed value, string memo);
 
-       function transferx(address[] to, uint[] tokens, string[] memo) public returns (bool success) {
+       function transferx(address[] memory to, uint[] memory tokens, string[] memory memo) public returns (bool success) {
          require(to.length == tokens.length && tokens.length == memo.length); 
          for (uint i = 0; i < to.length; i++) {
          require(transfer(to[i], tokens[i]));
