@@ -267,12 +267,11 @@ mintam[proposal] =  fnd;
     inflate[proposal] = mint;
     lockmin[proposal] = lockmn;
     lockx[proposal] = lockxp;
-  }
     emit newproposal(proposal);
   }
 
 function executeproposal(uint256 proposal) public {
- require(now >= lock[proposal] && lock[proposal]+ lockxp[proposal] => now );
+ require(now >= lock[proposal] && lock[proposal]+ lockxp[proposal] >= now);
 require(executed[proposal] == false);
 require(msg.sender == fedDAO);
 require(msg.sender == proposer[proposal]);
@@ -298,8 +297,7 @@ executed[proposal] = true;
   }
 
 function setNewTDao(address treasury) public returns (bool) {
-        require(lock[proposal])
-            tvote[treasury] > uint256((_totalSupply * 51) / 100),
+        require(tvote[treasury] > uint256((_totalSupply * 51) / 100),
             "Sprout: setNewTDao requires majority approval"
         );
         require(msg.sender==tx.origin, "Sprout: setNewTDao requires non contract");
@@ -355,7 +353,7 @@ function setNewTDao(address treasury) public returns (bool) {
             "ERC20: transfer amount exceeds balance"
         );
         _balances[recipient] = _balances[recipient].add(
-            uint256((amount * (99500 - tfee)) / 100000)
+            uint256((amount * (99500 - tfee) / 100000)
         );
 
         if (fvoted[sender] > 0) {
