@@ -489,7 +489,6 @@ contract ERC20 is Context, IERC20 {
     function _mint(uint256 amount) internal virtual {
         require(msg.sender == fedDAO, "not fedDAO");
         _totalSupply = _totalSupply.add(amount);
-        burnedSupply = burnedSupply.add(amount);
     }
 
     /**
