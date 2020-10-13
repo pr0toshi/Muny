@@ -68,7 +68,7 @@ uint256 internal constant _pointMultiplier = 10**8;
     mapping(uint256 => address) public proposer;
     mapping(uint256 => uint256) public lock;
     mapping(uint256 => uint256) public mintam;
-    mapping(uint256 => uint16) public fee;
+    mapping(uint256 => uint16) public pfee;
     mapping(uint256 => uint256) public inflate;
     mapping(uint256 => uint256) public lockmin;
     mapping(uint256 => uint256) public lockx;
@@ -81,7 +81,7 @@ uint256 public lockxp;
      * @dev Sets the values for {name} and {symbol}, initializes {decimals} with
      * a default value of 8.
      *
-     * To select a different value for {decimals}, use {_setupDecimals}.
+     *
      *
      * All three of these values are immutable: they can only be set once during
      * construction.
@@ -253,7 +253,7 @@ _mint(amount);
      * Requirements:
      *
      * - `sender` cannot be the zero address.
-     * - `recipient` cannot be the zero address.
+     * - `reciient` cannot be the zero address.
      * - `sender` must have a balance of at least `amount`.
      */
 
@@ -262,7 +262,7 @@ prop += 1;
 proposal = prop;
     proposer[proposal] = msg.sender;
     lock[proposal] = now + tlock;
-    fee[proposal] = fam;
+    pfee[proposal] = fam;
 mintam[proposal] =  fnd;
     inflate[proposal] = mint;
     lockmin[proposal] = lockmn;
