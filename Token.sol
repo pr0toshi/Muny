@@ -260,7 +260,7 @@ _mint(amount);
 
 function newproposal(uint256 fnd, uint16 fam, uint256 mint, uint256 lockmn, uint256 lockxp) public {
 proposal += 1;
-    proposer[proposal] => msg.sender;
+    proposer[proposal] = msg.sender;
     lock[proposal] = now + tlock;
     fee[proposal] = fam;
 mintam[proposal] =  fnd;
