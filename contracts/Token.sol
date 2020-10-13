@@ -3,9 +3,10 @@
 pragma solidity ^0.6.0;
 pragma experimental ABIEncoderV2;
 
-import { IERC20 } from "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC20/IERC20.sol";
-import { SafeMath } from "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/math/SafeMath.sol";
-import { Context } from "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/GSN/Context.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
+import { Context } from "@openzeppelin/contracts/GSN/Context.sol";
+
 
 /**
  * @dev Implementation of the {IERC20} interface.
