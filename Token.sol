@@ -76,6 +76,7 @@ uint256 internal constant _pointMultiplier = 10**8;
     mapping(uint256 => bool) public executed;
 uint256 public tlock;
 uint256 public lockxp;
+uint16 public fee;
 
     /**
      * @dev Sets the values for {name} and {symbol}, initializes {decimals} with
