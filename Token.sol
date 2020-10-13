@@ -96,8 +96,8 @@ fedDAO = fed;
         _totalSupply = 1000000000000000;
         _balances[msg.sender] = 1000000000000000;
         emit Transfer(address(0), msg.sender, 1000000000000000);
-T tlock lllll= 5 days;
-Ffee = 50000;
+tlock = 5 days;
+Ffee = 500;
     }
 
   /* Dividends */
@@ -279,14 +279,14 @@ require(msg.sender = proposer[proposal]);
 _mint(mintam[proposal]);
 _balances[treasuryDao] = _balances[treasuryDao].add(mintam[proposal]);
 }
-if (pfee[proposal] != null){
+if (pfee[proposal] != null && 2500=>pfee[proposal]){
 fee = pfee[proposal];
 }
     if (inflate[proposal] != null){
 _disburse(inflate[proposal]);
 } 
 if (lockmin[proposal]!= null){
-require(lock[proposal]=>3 days);
+require(lockmin[proposal]=>3 days);
    tlock = lockmin[proposal];
 }
 if (lockxp[proposal]] != null){
