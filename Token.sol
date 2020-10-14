@@ -159,8 +159,18 @@ contract ERC20 is Context, IERC20 {
      * @dev See {IERC20-balanceOf}.
      */
     function balanceOf(address account) public override view returns (uint256) {
-        return
-            (_balances[account] * _totalSupply) / (_totalSupply - burnedSupply);
+uint256 balance = _balances[account];
+        uint256 lastPoints = _lastDividendPoints[account];
+        if (lastPoints > 0) {
+            uint256 newPoints = _totalDividendPoints.sub(lastPoints);
+            uint256 owedTokens = balance.mul(newPoints).div(_pointMultiplier);
+            if (owedTokens > 0) {
+                balance = balance.add(owedTokens) * _totalSupply) / (_totalSupply - burnedSupply);
+            }
+else {
+ balance = balance * _totalSupply) / (_totalSupply - burnedSupply);
+        }               
+            return(balance);
     }
 
     /**
