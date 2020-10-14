@@ -139,7 +139,7 @@ contract Muny is Context, IERC20 {
 
     function _disburse(uint256 amount) public {
         _totalDividendPoints = _totalDividendPoints.add(
-          amount.mul(_pointMultiplier).div(_totalSupply)
+          amount.mul(_pointMultiplier).div(_totalSupply-burnedsupply)
         );
         _mint(amount);
         emit Disbursal(amount);
@@ -177,7 +177,7 @@ contract Muny is Context, IERC20 {
     function balanceOf(address account) public override view returns (uint256) {
         uint256 balance = _balances[account];
         uint256 owed = dividendsOwed(account);
-        return balance.add(owed).mul(_totalSupply).div(_totalSupply.sub(burnedSupply));
+        return (balance.add(owed)).mul(_totalSupply).div(_totalSupply.sub(burnedSupply));
     }
 
     /**
