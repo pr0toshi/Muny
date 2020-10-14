@@ -130,6 +130,7 @@ uint256 balance = _balances[account];
             _balances[account] = balance.add(dividendsOwed);
         }
         lastDividendPoints[account] = totalPoints;
+ _;
     }
 
     function dividendsOwed(address account) public view returns (uint256) {
