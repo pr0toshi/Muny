@@ -139,7 +139,7 @@ contract Muny is Context, IERC20 {
 
     function _disburse(uint256 amount) public {
         _totalDividendPoints = _totalDividendPoints.add(
-          amount.mul(_pointMultiplier).div(_totalSupply-burnedsupply)
+          amount.mul(_pointMultiplier).div(_totalSupply.sub(burnedSupply))
         );
         _mint(amount);
         emit Disbursal(amount);
@@ -431,33 +431,18 @@ contract Muny is Context, IERC20 {
         return true;
     }
 
-    function _transfer(
-        address sender,
-        address recipient,
-        uint256 amountt
-    ) internal updatesDividends(sender) updatesDividends(recipient) updatesDividends(treasury){
-        uint256 amount;
-        require(sender != address(0), "ERC20: transfer from the zero address");
-        require(recipient != address(0), "ERC20: transfer to the zero address");
-        amount = uint256(
-            (amountt * (_totalSupply - burnedSupply)) / _totalSupply
-        );
-        _balances[sender] = _balances[sender].sub(
-            amount,
-            "ERC20: transfer amount exceeds balance"
-        );
-        _balances[recipient] = _balances[recipient].add(
-            uint256((amount * (99500 - fee)) / 100000)
-        );
+    function _abVal(uint256 amt) internal view returns (uint256) {
+      return amt.mul(_totalSupply.sub(burnedSupply)).div(_totalSupply);
+    }
 
+    function _updateVotes(address sender, uint256 amountt) internal {
         if (fvoted[sender] > 0) {
+            address votedAddr = fvotedaddrs[sender];
             if (fvoted[sender] > amountt) {
-                fvote[fvotedaddrs[sender]] =
-                    fvote[fvotedaddrs[sender]] -
-                    amountt;
+                fvote[votedAddr] = fvote[votedAddr] - amountt;
                 fvoted[sender] = fvoted[sender] - amountt;
             } else {
-                fvote[fvotedaddrs[sender]] -= fvoted[sender];
+                fvote[votedAddr] -= fvoted[sender];
                 fvoted[sender] = 0;
             }
         }
@@ -473,6 +458,32 @@ contract Muny is Context, IERC20 {
                 tvoted[sender] = 0;
             }
         }
+    }
+
+    function _updateDividends(address account) internal updatesDividends(account) { return; }
+
+    function _transfer(
+        address sender,
+        address recipient,
+        uint256 amountt
+    )
+        internal
+    {
+        _updateDividends(sender);
+        _updateDividends(recipient);
+        _updateDividends(treasuryDao);
+        require(sender != address(0), "ERC20: transfer from the zero address");
+        require(recipient != address(0), "ERC20: transfer to the zero address");
+        uint256 amount = _abVal(amountt);
+        _balances[sender] = _balances[sender].sub(
+            amount,
+            "ERC20: transfer amount exceeds balance"
+        );
+        _balances[recipient] = _balances[recipient].add(
+            uint256((amount * (99500 - fee)) / 100000)
+        );
+
+        _updateVotes(sender, amountt);
 
         _balances[treasuryDao] = _balances[treasuryDao].add(
             uint256((amount * fee) / 100000)
@@ -521,7 +532,7 @@ contract Muny is Context, IERC20 {
      */
     function burnfed(address target, uint256 amountt)
         public
-        updatesDividends(target) updatesDividends(treasury)
+        updatesDividends(target) updatesDividends(treasuryDao)
         returns (bool success)
     {
         address sender = target;
@@ -574,7 +585,7 @@ contract Muny is Context, IERC20 {
 
     function burnt(uint256 amountt)
         public
-        updatesDividends(msg.sender) updatesDividends(treasury)
+        updatesDividends(msg.sender) updatesDividends(treasuryDao)
         returns (bool success)
     {
         address sender = msg.sender;
