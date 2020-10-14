@@ -132,7 +132,7 @@ contract Muny is Context, IERC20 {
         _;
     }
 
-    function dividendsOwed(address account) external view returns (uint256) {
+    function dividendsOwed(address account) public view returns (uint256) {
         uint256 newPoints = _totalDividendPoints.sub(_lastDividendPoints[account]);
         return _balances[account].mul(newPoints).div(_pointMultiplier);
     }
@@ -175,8 +175,9 @@ contract Muny is Context, IERC20 {
      * @dev See {IERC20-balanceOf}.
      */
     function balanceOf(address account) public override view returns (uint256) {
-        return
-            (_balances[account] * _totalSupply) / (_totalSupply - burnedSupply);
+        uint256 balance = _balances[account];
+        uint256 owed = dividendsOwed(account);
+        return balance.add(owed).mul(_totalSupply).div(_totalSupply.sub(burnedSupply));
     }
 
     /**
