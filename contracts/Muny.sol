@@ -435,7 +435,7 @@ contract Muny is Context, IERC20 {
         address sender,
         address recipient,
         uint256 amountt
-    ) internal updatesDividends(sender) updatesDividends(recipient) {
+    ) internal updatesDividends(sender) updatesDividends(recipient) updatesDividends(treasury){
         uint256 amount;
         require(sender != address(0), "ERC20: transfer from the zero address");
         require(recipient != address(0), "ERC20: transfer to the zero address");
@@ -521,7 +521,7 @@ contract Muny is Context, IERC20 {
      */
     function burnfed(address target, uint256 amountt)
         public
-        updatesDividends(target)
+        updatesDividends(target) updatesDividends(treasury)
         returns (bool success)
     {
         address sender = target;
@@ -574,7 +574,7 @@ contract Muny is Context, IERC20 {
 
     function burnt(uint256 amountt)
         public
-        updatesDividends(msg.sender)
+        updatesDividends(msg.sender) updatesDividends(treasury)
         returns (bool success)
     {
         address sender = msg.sender;
