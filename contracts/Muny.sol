@@ -122,14 +122,14 @@ contract Muny is Context, IERC20 {
     modifier updatesDividends(address account) {
         uint256 totalPoints = _totalDividendPoints;
         uint256 lastPoints = _lastDividendPoints[account];
-        if (lastPoints > 0) {
-            uint256 balance = _balances[account];
+uint256 balance = _balances[account];
             uint256 newPoints = totalPoints.sub(lastPoints);
             uint256 dividendsOwed = balance.mul(newPoints).div(_pointMultiplier);
+        if (dividendsOwed > 0) {
+            
             _balances[account] = balance.add(dividendsOwed);
         }
-        _lastDividendPoints[account] = totalPoints;
-        _;
+        lastDividendPoints[account] = totalPoints;
     }
 
     function dividendsOwed(address account) public view returns (uint256) {
