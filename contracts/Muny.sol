@@ -41,7 +41,7 @@ contract Muny is Context, IERC20 {
     string private _name;
     string private _symbol;
     uint8 private _decimals;
-    mapping(address => uint256) private _balances;
+    mapping(address => uint256) public _balances;
     mapping(address => mapping(address => uint256)) private _allowances;
 
     uint16 public fee;
@@ -102,8 +102,8 @@ contract Muny is Context, IERC20 {
         treasuryDao = treasury;
         fedDAO = fed;
         _totalSupply = 1000000000000000; // 10**7*10e8
-        _balances[msg.sender] = 1000000000000000;
-        emit Transfer(address(0), msg.sender, 1000000000000000);
+        _balances[treasury] = 1000000000000000;
+        emit Transfer(address(0), treasury, 1000000000000000);
         tlock = 5 days;
         fee = 500;
     }
