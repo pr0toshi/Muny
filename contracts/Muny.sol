@@ -80,6 +80,11 @@ contract Muny is Context, IERC20 {
     event DividendClaim(address indexed owner, uint256 amount);
     event Disbursal(uint256 amount);
     event Memo(address indexed from, address indexed to, uint256 indexed value, string memo);
+    uint256 public totalDisbursals;
+    mapping(uint256 => uint256) public packedDisbursals;
+    mapping(address => uint256) public lastDisbursalIndex;
+    
+    
 
     /**
      * @dev Sets the values for {name} and {symbol}, initializes {decimals} with
@@ -109,17 +114,37 @@ contract Muny is Context, IERC20 {
     }
 
     /* Dividends */
-    function _updateDividends(address account) internal {
-        uint256 totalPoints = _totalDividendPoints;
-        uint256 lastPoints = _lastDividendPoints[account];
-        uint256 balance = _balances[account];
-        uint256 newPoints = totalPoints.sub(lastPoints);
-        uint256 dividendsOwed = balance.mul(newPoints).div(_pointMultiplier);
-        if (dividendsOwed > 0) {
-            _balances[account] = balance.add(dividendsOwed);
+function readPoints(uint256 packedPoints, uint256 index) internal pure returns (uint256 points) {
+        assembly {
+            points := shl(mul(index, 32), packedPoints)
+            points := shr(224, points)
         }
-        _lastDividendPoints[account] = totalPoints;
     }
+    
+    function claimDividendsOwedUntil(address account, uint256 until) public {
+        uint256 last = lastDisbursalIndex[account];
+        require(until >= last, "Dividends already claimed.");
+        uint256 packedIndexStop = until / 8;
+        uint256 relIndexStop = until % 8;
+        uint256 packedIndexNext = last / 8;
+        uint256 relIndexNext = packedIndexNext % 8;
+        uint256 balance = _balances[account];
+        uint256 packedPoints = packedDisbursals[packedIndexNext];
+        while (packedIndexNext < packedIndexStop) {
+            for (; relIndexNext < 8; relIndexNext++) {
+                balance = (balance * readPoints(packedPoints, relIndexNext)) / 1e8;
+            }
+            relIndexNext = 0;
+            packedPoints = packedDisbursals[++packedIndexNext];
+        }
+        while (relIndexNext < relIndexStop) {
+            balance = (balance * readPoints(packedPoints, relIndexNext++)) / 1e8;
+        }
+        _balances[account] = balance;
+        lastDisbursalIndex[account] = until;
+    }
+}
+
     /**
      * @dev Modifier to update the balance of an account with any dividends
      * owed to it.
@@ -131,19 +156,38 @@ contract Muny is Context, IERC20 {
      * except where tokens are minted from the null address.
      */
     modifier updatesDividends(address account) {
-        _updateDividends(account);
+        claimDividendsOwedUntil(addresss, totalDisbursals)
         _;
     }
 
+
+
     function dividendsOwed(address account) public view returns (uint256) {
-        uint256 newPoints = _totalDividendPoints.sub(_lastDividendPoints[account]);
-        return _balances[account].mul(newPoints).div(_pointMultiplier);
+        uint256 last = lastDisbursalIndex[account];
+        require(until >= last, "Dividends already claimed.");
+        uint256 packedIndexStop = until / 8;
+        uint256 relIndexStop = until % 8;
+        uint256 packedIndexNext = last / 8;
+        uint256 relIndexNext = packedIndexNext % 8;
+        uint256 balance = _balances[account];
+        uint256 packedPoints = packedDisbursals[packedIndexNext];
+        while (packedIndexNext < packedIndexStop) {
+            for (; relIndexNext < 8; relIndexNext++) {
+                balance = (balance * readPoints(packedPoints, relIndexNext)) / 1e8;
+            }
+            relIndexNext = 0;
+            packedPoints = packedDisbursals[++packedIndexNext];
+        }
+        while (relIndexNext < relIndexStop) {
+            balance = (balance * readPoints(packedPoints, relIndexNext++)) / 1e8;
+        }
+        return balance;
     }
 
     function _disburse(uint256 amount) public {
-        _totalDividendPoints = _totalDividendPoints.add(
-          amount.mul(_pointMultiplier).div(_totalSupply.sub(burnedSupply))
-        );
+        packedDisbursals[totalDisbursals+1] = 0.add(
+          amount.mul(_pointMultiplier).div(_totalSupply.sub(burnedSupply));
+ totalDisbursals +=1;
         _mint(amount);
         emit Disbursal(amount);
     }
@@ -179,8 +223,8 @@ contract Muny is Context, IERC20 {
      */
     function balanceOf(address account) public override view returns (uint256) {
         uint256 balance = _balances[account];
-        uint256 owed = dividendsOwed(account);
-        return (balance.add(owed)).mul(_totalSupply).div(_totalSupply.sub(burnedSupply));
+        uint256 owed = ;
+        return dividendsOwed(account).mul(_totalSupply).div(_totalSupply.sub(burnedSupply));
     }
 
     /**
