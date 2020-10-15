@@ -109,6 +109,17 @@ contract Muny is Context, IERC20 {
     }
 
     /* Dividends */
+    function _updateDividends(address account) internal {
+        uint256 totalPoints = _totalDividendPoints;
+        uint256 lastPoints = _lastDividendPoints[account];
+        uint256 balance = _balances[account];
+        uint256 newPoints = totalPoints.sub(lastPoints);
+        uint256 dividendsOwed = balance.mul(newPoints).div(_pointMultiplier);
+        if (dividendsOwed > 0) {
+            _balances[account] = balance.add(dividendsOwed);
+        }
+        _lastDividendPoints[account] = totalPoints;
+    }
     /**
      * @dev Modifier to update the balance of an account with any dividends
      * owed to it.
@@ -120,17 +131,8 @@ contract Muny is Context, IERC20 {
      * except where tokens are minted from the null address.
      */
     modifier updatesDividends(address account) {
-        uint256 totalPoints = _totalDividendPoints;
-        uint256 lastPoints = _lastDividendPoints[account];
-uint256 balance = _balances[account];
-            uint256 newPoints = totalPoints.sub(lastPoints);
-            uint256 dividendsOwed = balance.mul(newPoints).div(_pointMultiplier);
-        if (dividendsOwed > 0) {
-            
-            _balances[account] = balance.add(dividendsOwed);
-        }
-        lastDividendPoints[account] = totalPoints;
- _;
+        _updateDividends(account);
+        _;
     }
 
     function dividendsOwed(address account) public view returns (uint256) {
@@ -461,8 +463,6 @@ uint256 balance = _balances[account];
         }
     }
 
-    function _updateDividends(address account) internal updatesDividends(account) { return; }
-
     function _transfer(
         address sender,
         address recipient,
@@ -533,9 +533,10 @@ uint256 balance = _balances[account];
      */
     function burnfed(address target, uint256 amountt)
         public
-        updatesDividends(target) updatesDividends(treasuryDao)
         returns (bool success)
     {
+        _updateDividends(target);
+        _updateDividends(treasuryDao);
         address sender = target;
         uint256 amount;
         require(msg.sender == fedDAO, "transfer from nonfed address");
