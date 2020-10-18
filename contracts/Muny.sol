@@ -35,8 +35,7 @@ import { Context } from "@openzeppelin/contracts/GSN/Context.sol";
 contract Muny is Context, IERC20 {
     using SafeMath for uint256;
 
-    uint256 internal constant _pointMultiplier = 10**8;
-
+    
     uint256 private _totalSupply;
     string private _name;
     string private _symbol;
@@ -48,9 +47,6 @@ contract Muny is Context, IERC20 {
     uint256 public burnedSupply;
     address public treasuryDao;
     address public fedDAO;
-
-    uint256 internal _totalDividendPoints;
-    mapping(address => uint256) internal _lastDividendPoints;
 
     mapping(address => uint256) public tvote;
     mapping(address => address) public tvotedaddrs;
@@ -80,9 +76,6 @@ contract Muny is Context, IERC20 {
     event DividendClaim(address indexed owner, uint256 amount);
     event Disbursal(uint256 amount);
     event Memo(address indexed from, address indexed to, uint256 indexed value, string memo);
-    uint256 public totalDisbursals;
-    mapping(uint256 => uint256) public packedDisbursals;
-    mapping(address => uint256) public lastDisbursalIndex;
     
     
 
@@ -114,6 +107,111 @@ contract Muny is Context, IERC20 {
     }
 
     /* Dividends */
+
+uint256 internal constant _pointMultiplier = 1e8;
+    uint256 public totalDisbursals;
+    mapping(uint256 => uint256) public packedDisbursals;
+    mapping(address => uint256) public lastDisbursalIndex;
+    
+    function readPoints(
+      uint256 packedPoints,
+      uint256 index
+    )
+        internal
+        pure
+        returns (uint256 points)
+    {
+        assembly {
+            points := shl(mul(index, 64), packedPoints)
+            points := shr(192, points)
+        }
+    }
+
+    function writePoints(
+      uint256 packedPoints,
+      uint256 index,
+      uint256 newPoints)
+        internal
+        pure
+        returns (uint256 points)
+    {
+        assembly {
+            points := shl(mul(sub(3, index), 64), newPoints)
+            points := or(packedPoints, points)
+        }
+    }
+
+    function _disburse(uint256 amount) internal {
+        uint256 newDividendPoints = amount.mul(_pointMultiplier).div(totalSupply.sub(burnedSupply));
+        require(newDividendPoints < uint64(-1), "Error: Disbursal points do not fit in a uint64.");
+        uint256 total = totalDisbursals;
+        uint256 packedIndex = total / 4;
+        uint256 relIndex = total % 4;
+        if (relIndex == 3) {
+          packedIndex += 1;
+          relIndex = 0;
+        }
+        uint256 packedPoints = packedDisbursals[packedIndex];
+        packedDisbursals[packedIndex] = writePoints(packedPoints, relIndex, newDividendPoints);
+        totalDisbursals = total + 1;
+    _mint(amount);
+        emit Disbursal(amount);
+    }
+
+    modifier updatesDividends(address account) {
+        claimDividendsOwedUntil(account, totalDisbursals);
+        _;
+    }
+    
+    function claimDividendsOwedUntil(address account, uint256 until) public {
+        uint256 last = lastDisbursalIndex[account];
+        if (until == last) return;
+        require(until > last, "Dividends already claimed.");
+        require(until <= totalDisbursals, "Can not claim dividends that have not been disbursed.");
+        uint256 packedIndexStop = until / 4;
+        uint256 relIndexStop = until % 4;
+        uint256 packedIndexNext = last / 4;
+        uint256 relIndexNext = packedIndexNext % 4;
+        uint256 balance = _balances[account];
+        uint256 packedPoints = packedDisbursals[packedIndexNext];
+        while (packedIndexNext < packedIndexStop) {
+            for (; relIndexNext < 4; relIndexNext++) {
+                balance = (balance * readPoints(packedPoints, relIndexNext)) / _pointMultiplier;
+            }
+            relIndexNext = 0;
+            packedPoints = packedDisbursals[++packedIndexNext];
+        }
+        while (relIndexNext < relIndexStop) {
+            balance = (balance * readPoints(packedPoints, relIndexNext++)) / _pointMultiplier;
+        }
+        _balances[account] = balance;
+        lastDisbursalIndex[account] = until;
+    }
+
+function DividendsOwedUntil(address account, uint256 until) public view returns (uint256 bal) {
+        uint256 last = lastDisbursalIndex[account];
+        if (until == last) return;
+        require(until > last, "Dividends already claimed.");
+        require(until <= totalDisbursals, "Can not claim dividends that have not been disbursed.");
+        uint256 packedIndexStop = until / 4;
+        uint256 relIndexStop = until % 4;
+        uint256 packedIndexNext = last / 4;
+        uint256 relIndexNext = packedIndexNext % 4;
+        uint256 balance = _balances[account];
+        uint256 packedPoints = packedDisbursals[packedIndexNext];
+        while (packedIndexNext < packedIndexStop) {
+            for (; relIndexNext < 4; relIndexNext++) {
+                balance = (balance * readPoints(packedPoints, relIndexNext)) / _pointMultiplier;
+            }
+            relIndexNext = 0;
+            packedPoints = packedDisbursals[++packedIndexNext];
+        }
+        while (relIndexNext < relIndexStop) {
+            balance = (balance * readPoints(packedPoints, relIndexNext++)) / _pointMultiplier;
+        }
+        return (balance);
+    }
+
 function readPoints(uint256 packedPoints, uint256 index) internal pure returns (uint256 points) {
         assembly {
             points := shl(mul(index, 32), packedPoints)
@@ -121,76 +219,9 @@ function readPoints(uint256 packedPoints, uint256 index) internal pure returns (
         }
     }
     
-    function claimDividendsOwedUntil(address account, uint256 until) public {
-        uint256 last = lastDisbursalIndex[account];
-        require(until >= last, "Dividends already claimed.");
-        uint256 packedIndexStop = until / 8;
-        uint256 relIndexStop = until % 8;
-        uint256 packedIndexNext = last / 8;
-        uint256 relIndexNext = packedIndexNext % 8;
-        uint256 balance = _balances[account];
-        uint256 packedPoints = packedDisbursals[packedIndexNext];
-        while (packedIndexNext < packedIndexStop) {
-            for (; relIndexNext < 8; relIndexNext++) {
-                balance = (balance * readPoints(packedPoints, relIndexNext)) / 1e8;
-            }
-            relIndexNext = 0;
-            packedPoints = packedDisbursals[++packedIndexNext];
-        }
-        while (relIndexNext < relIndexStop) {
-            balance = (balance * readPoints(packedPoints, relIndexNext++)) / 1e8;
-        }
-        _balances[account] = balance;
-        lastDisbursalIndex[account] = until;
-    }
-}
-
-    /**
-     * @dev Modifier to update the balance of an account with any dividends
-     * owed to it.
-     *
-     * Based on Nick Johnson's Dividend-Bearing Tokens article
-     * https://medium.com/weka/dividend-bearing-tokens-on-ethereum-42d01c710657
-     *
-     * Note: This MUST be applied to every function which can alter a user's balance,
-     * except where tokens are minted from the null address.
-     */
-    modifier updatesDividends(address account) {
-        claimDividendsOwedUntil(addresss, totalDisbursals)
-        _;
-    }
 
 
-
-    function dividendsOwed(address account) public view returns (uint256) {
-        uint256 last = lastDisbursalIndex[account];
-        require(until >= last, "Dividends already claimed.");
-        uint256 packedIndexStop = until / 8;
-        uint256 relIndexStop = until % 8;
-        uint256 packedIndexNext = last / 8;
-        uint256 relIndexNext = packedIndexNext % 8;
-        uint256 balance = _balances[account];
-        uint256 packedPoints = packedDisbursals[packedIndexNext];
-        while (packedIndexNext < packedIndexStop) {
-            for (; relIndexNext < 8; relIndexNext++) {
-                balance = (balance * readPoints(packedPoints, relIndexNext)) / 1e8;
-            }
-            relIndexNext = 0;
-            packedPoints = packedDisbursals[++packedIndexNext];
-        }
-        while (relIndexNext < relIndexStop) {
-            balance = (balance * readPoints(packedPoints, relIndexNext++)) / 1e8;
-        }
-        return balance;
-    }
-
-    function _disburse(uint256 amount) public {
-        packedDisbursals[totalDisbursals+1] = 0.add(
-          amount.mul(_pointMultiplier).div(_totalSupply.sub(burnedSupply));
- totalDisbursals +=1;
-        _mint(amount);
-        emit Disbursal(amount);
-    }
+    
 
     /**
      * @dev Returns the name of the token.
@@ -222,9 +253,7 @@ function readPoints(uint256 packedPoints, uint256 index) internal pure returns (
      * @dev See {IERC20-balanceOf}.
      */
     function balanceOf(address account) public override view returns (uint256) {
-        uint256 balance = _balances[account];
-        uint256 owed = ;
-        return dividendsOwed(account).mul(_totalSupply).div(_totalSupply.sub(burnedSupply));
+        return DividendsOwedUntil(account).mul(_totalSupply).div(_totalSupply.sub(burnedSupply));
     }
 
     /**
@@ -292,7 +321,7 @@ function readPoints(uint256 packedPoints, uint256 index) internal pure returns (
         address sender,
         address recipient,
         uint256 amount
-    ) public virtual override returns (bool) {
+    )updateDividends(sender) public virtual override returns (bool) {
         _transfer(sender, recipient, amount);
         _approve(
             sender,
@@ -394,7 +423,7 @@ function readPoints(uint256 packedPoints, uint256 index) internal pure returns (
         emit Newproposal(proposal);
     }
 
-    function executeproposal(uint256 proposal) public {
+    function executeproposal(uint256 proposal) updateDividends(treasuryDao); public  {
         require(
             now >= lock[proposal] && lock[proposal] + lockxp >= now
         );
@@ -447,7 +476,7 @@ function readPoints(uint256 packedPoints, uint256 index) internal pure returns (
      * @dev Update votes. Votedad voted address by sender. Votet treasury address votes.
      *      Voted sender vote amount.
      */
-    function updatetreasuryVote(address treasury) public returns (bool) {
+    function updatetreasuryVote(address treasury) updateDividends(msg.sender); public returns (bool) {
         tvote[tvotedaddrs[msg.sender]] -= tvoted[msg.sender];
         tvote[treasury] += uint256(balanceOf(msg.sender));
         tvotedaddrs[msg.sender] = treasury;
@@ -470,7 +499,7 @@ function readPoints(uint256 packedPoints, uint256 index) internal pure returns (
      * @dev Update votes. Votedad voted address by sender. Votet treasury address votes.
      *      Voted sender vote amount.
      */
-    function updatefedVote(address fed) public returns (bool) {
+    function updatefedVote(address fed) updateDividends(msg.sender); public returns (bool) {
         fvote[fvotedaddrs[msg.sender]] -= fvoted[msg.sender];
         fvote[fed] += uint256(balanceOf(msg.sender));
         fvotedaddrs[msg.sender] = fed;
