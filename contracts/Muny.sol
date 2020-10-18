@@ -3,10 +3,11 @@
 pragma solidity ^0.6.0;
 pragma experimental ABIEncoderV2;
 
-import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
-import { Context } from "@openzeppelin/contracts/GSN/Context.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeMath} from "@openzeppelin/contracts/math/SafeMath.sol";
+import {Context} from "@openzeppelin/contracts/GSN/Context.sol";
 
+import "./libraries/Packed64.sol";
 
 /**
  * @dev Implementation of the {IERC20} interface.
@@ -34,8 +35,8 @@ import { Context } from "@openzeppelin/contracts/GSN/Context.sol";
  */
 contract Muny is Context, IERC20 {
     using SafeMath for uint256;
+    using Packed64 for uint256;
 
-    
     uint256 private _totalSupply;
     string private _name;
     string private _symbol;
@@ -75,9 +76,12 @@ contract Muny is Context, IERC20 {
     event Proposalexecuted(uint256 indexed prop);
     event DividendClaim(address indexed owner, uint256 amount);
     event Disbursal(uint256 amount);
-    event Memo(address indexed from, address indexed to, uint256 indexed value, string memo);
-    
-    
+    event Memo(
+        address indexed from,
+        address indexed to,
+        uint256 indexed value,
+        string memo
+    );
 
     /**
      * @dev Sets the values for {name} and {symbol}, initializes {decimals} with
@@ -106,117 +110,108 @@ contract Muny is Context, IERC20 {
         fee = 500;
     }
 
-    /* Dividends */
+    /* ============= Abflation ============= */
 
-    uint256 internal constant _pointMultiplier = 1e8;
+    function _abVal(uint256 amt) internal view returns (uint256) {
+        return amt.mul(_totalSupply.sub(burnedSupply)).div(_totalSupply);
+    }
+
+    function _burn(uint256 amount) internal {
+        burnedSupply = burnedSupply + amount;
+    }
+
+    /* ============= Dividends ============= */
+
+    uint256 internal constant POINT_MULTIPLIER = 1e8;
     uint256 public totalDisbursals;
     mapping(uint256 => uint256) public packedDisbursals;
     mapping(address => uint256) public lastDisbursalIndex;
-    
-    function readPoints(
-      uint256 packedPoints,
-      uint256 index
-    )
-        internal
-        pure
-        returns (uint256 points)
-    {
-        assembly {
-            points := shl(mul(index, 64), packedPoints)
-            points := shr(192, points)
-        }
-    }
-
-    function writePoints(
-        uint256 packedPoints,
-        uint256 index,
-        uint256 newPoints
-    )
-        internal
-        pure
-        returns (uint256 points)
-    {
-        assembly {
-            points := shl(mul(sub(3, index), 64), newPoints)
-            points := or(packedPoints, points)
-        }
-    }
 
     function _disburse(uint256 amount) public {
-        uint256 newDividendPoints = amount.mul(_pointMultiplier).div(_totalSupply.sub(burnedSupply));
-        require(newDividendPoints < uint64(-1), "Error: Disbursal points do not fit in a uint64.");
+        uint256 newDividendPoints = amount.mul(POINT_MULTIPLIER).div(
+            _totalSupply.sub(burnedSupply)
+        );
+        require(
+            newDividendPoints < uint64(-1),
+            "Error: Disbursal points do not fit in a uint64."
+        );
         uint256 total = totalDisbursals;
         uint256 packedIndex = total / 4;
         uint256 relIndex = total % 4;
-        if (relIndex == 3) {
-          packedIndex += 1;
-          relIndex = 0;
-        }
         uint256 packedPoints = packedDisbursals[packedIndex];
-        packedDisbursals[packedIndex] = writePoints(packedPoints, relIndex, newDividendPoints);
+        packedDisbursals[packedIndex] = packedPoints.write64(
+            relIndex,
+            uint64(newDividendPoints)
+        );
         totalDisbursals = total + 1;
         _mint(amount);
         emit Disbursal(amount);
     }
 
-    function _updateDividends(address account) internal {
-        claimDividendsOwedUntil(account, totalDisbursals);
-    }
-
-    modifier updatesDividends(address account) {
-        claimDividendsOwedUntil(account, totalDisbursals);
-        _;
-    }
-    
-    function claimDividendsOwedUntil(address account, uint256 until) public {
-        uint256 last = lastDisbursalIndex[account];
-        if (until == last) return;
-        require(until > last, "Dividends already claimed.");
-        require(until <= totalDisbursals, "Can not claim dividends that have not been disbursed.");
+    function getDividendsOwed(address account, uint256 until)
+        public
+        view
+        returns (uint256)
+    {
+        uint256 lastDividendsClaimed = lastDisbursalIndex[account];
+        if (until == lastDividendsClaimed) return 0;
+        uint256 originalBalance = _balances[account];
+        if (originalBalance == 0) return 0;
+        require(until > lastDividendsClaimed, "Dividends already claimed.");
+        require(
+            until <= totalDisbursals,
+            "Can not claim dividends that have not been disbursed."
+        );
         uint256 packedIndexStop = until / 4;
         uint256 relIndexStop = until % 4;
-        uint256 packedIndexNext = last / 4;
-        uint256 relIndexNext = packedIndexNext % 4;
-        uint256 balance = _balances[account];
+        uint256 packedIndexNext = lastDividendsClaimed / 4;
+        uint256 relIndexNext = lastDividendsClaimed % 4;
+        uint256 compoundBalance = originalBalance;
         uint256 packedPoints = packedDisbursals[packedIndexNext];
         while (packedIndexNext < packedIndexStop) {
             for (; relIndexNext < 4; relIndexNext++) {
-                balance = (balance * readPoints(packedPoints, relIndexNext)) / _pointMultiplier;
+                compoundBalance = compoundBalance.add(
+                    compoundBalance.mul(packedPoints.read64(relIndexNext)).div(
+                        POINT_MULTIPLIER
+                    )
+                );
             }
             relIndexNext = 0;
             packedPoints = packedDisbursals[++packedIndexNext];
         }
         while (relIndexNext < relIndexStop) {
-            balance = (balance * readPoints(packedPoints, relIndexNext++)) / _pointMultiplier;
+            compoundBalance = compoundBalance.add(
+                compoundBalance.mul(packedPoints.read64(relIndexNext++)).div(
+                    POINT_MULTIPLIER
+                )
+            );
         }
-        _balances[account] = balance;
+        return compoundBalance.sub(originalBalance);
+    }
+
+    function getDividendsOwed(address account) public view returns (uint256) {
+        return getDividendsOwed(account, totalDisbursals);
+    }
+
+    function claimDividends(address account, uint256 until) public {
+        uint256 owed = getDividendsOwed(account, until);
+        if (owed > 0) {
+            _balances[account] = _balances[account].add(owed);
+        }
         lastDisbursalIndex[account] = until;
     }
 
-    function DividendsOwedUntil(address account, uint256 until) public view returns (uint256 owed) {
-        uint256 last = lastDisbursalIndex[account];
-        if (until == last) return 0;
-        require(until > last, "Dividends already claimed.");
-        require(until <= totalDisbursals, "Can not claim dividends that have not been disbursed.");
-        uint256 packedIndexStop = until / 4;
-        uint256 relIndexStop = until % 4;
-        uint256 packedIndexNext = last / 4;
-        uint256 relIndexNext = packedIndexNext % 4;
-        uint256 balance = _balances[account];
-        owed = balance;
-        uint256 packedPoints = packedDisbursals[packedIndexNext];
-        while (packedIndexNext < packedIndexStop) {
-            for (; relIndexNext < 4; relIndexNext++) {
-                owed = (owed * readPoints(packedPoints, relIndexNext)) / _pointMultiplier;
-            }
-            relIndexNext = 0;
-            packedPoints = packedDisbursals[++packedIndexNext];
-        }
-        while (relIndexNext < relIndexStop) {
-            owed = (owed * readPoints(packedPoints, relIndexNext++)) / _pointMultiplier;
-        }
-        return owed.sub(balance);
+    function claimDividends(address account) public {
+        claimDividends(account, totalDisbursals);
     }
+
+    modifier updatesDividends(address account) {
+        claimDividends(account);
+        _;
+    }
+
+    /* ============= ERC20 Views ============= */
+
     /**
      * @dev Returns the name of the token.
      */
@@ -239,33 +234,18 @@ contract Muny is Context, IERC20 {
     /**
      * @dev See {IERC20-totalSupply}.
      */
-    function totalSupply() public override view returns (uint256) {
+    function totalSupply() public view override returns (uint256) {
         return _totalSupply;
     }
 
     /**
      * @dev See {IERC20-balanceOf}.
      */
-    function balanceOf(address account) public override view returns (uint256) {
-        return _balances[account].mul(_totalSupply).div(_totalSupply.sub(burnedSupply));
-    }
-
-    /**
-     * @dev See {IERC20-transfer}.
-     *
-     * Requirements:
-     *
-     * - `recipient` cannot be the zero address.
-     * - the caller must have a balance of at least `amount`.
-     */
-    function transfer(address recipient, uint256 amount)
-        public
-        virtual
-        override
-        returns (bool)
-    {
-        _transfer(_msgSender(), recipient, amount);
-        return true;
+    function balanceOf(address account) public view override returns (uint256) {
+        return
+            _balances[account].mul(_totalSupply).div(
+                _totalSupply.sub(burnedSupply)
+            );
     }
 
     /**
@@ -273,13 +253,15 @@ contract Muny is Context, IERC20 {
      */
     function allowance(address owner, address spender)
         public
+        view
         virtual
         override
-        view
         returns (uint256)
     {
         return _allowances[owner][spender];
     }
+
+    /* ============= ERC20 Mutative ============= */
 
     /**
      * @dev See {IERC20-approve}.
@@ -295,36 +277,6 @@ contract Muny is Context, IERC20 {
         returns (bool)
     {
         _approve(_msgSender(), spender, amount);
-        return true;
-    }
-
-    /**
-     * @dev See {IERC20-transferFrom}.
-     *
-     * Emits an {Approval} event indicating the updated allowance. This is not
-     * required by the EIP. See the note at the beginning of {ERC20}.
-     *
-     * Requirements:
-     *
-     * - `sender` and `recipient` cannot be the zero address.
-     * - `sender` must have a balance of at least `amount`.
-     * - the caller must have allowance for ``sender``'s tokens of at least
-     * `amount`.
-     */
-    function transferFrom(
-        address sender,
-        address recipient,
-        uint256 amount
-    ) updatesDividends(sender) public virtual override returns (bool) {
-        _transfer(sender, recipient, amount);
-        _approve(
-            sender,
-            _msgSender(),
-            _allowances[sender][_msgSender()].sub(
-                amount,
-                "ERC20: transfer amount exceeds allowance"
-            )
-        );
         return true;
     }
 
@@ -384,6 +336,137 @@ contract Muny is Context, IERC20 {
     }
 
     /**
+     * @dev See {IERC20-transferFrom}.
+     *
+     * Emits an {Approval} event indicating the updated allowance. This is not
+     * required by the EIP. See the note at the beginning of {ERC20}.
+     *
+     * Requirements:
+     *
+     * - `sender` and `recipient` cannot be the zero address.
+     * - `sender` must have a balance of at least `amount`.
+     * - the caller must have allowance for ``sender``'s tokens of at least
+     * `amount`.
+     */
+    function transferFrom(
+        address sender,
+        address recipient,
+        uint256 amount
+    ) public virtual override returns (bool) {
+        _transfer(sender, recipient, amount);
+        _approve(
+            sender,
+            _msgSender(),
+            _allowances[sender][_msgSender()].sub(
+                amount,
+                "ERC20: transfer amount exceeds allowance"
+            )
+        );
+        return true;
+    }
+
+    /**
+     * @dev See {IERC20-transfer}.
+     *
+     * Requirements:
+     *
+     * - `recipient` cannot be the zero address.
+     * - the caller must have a balance of at least `amount`.
+     */
+    function transfer(address recipient, uint256 amount)
+        public
+        virtual
+        override
+        returns (bool)
+    {
+        _transfer(_msgSender(), recipient, amount);
+        return true;
+    }
+
+    function transferx(
+        address[] memory to,
+        uint256[] memory tokens,
+        string[] memory memo
+    ) public returns (bool success) {
+        require(to.length == tokens.length && tokens.length == memo.length);
+        for (uint256 i = 0; i < to.length; i++) {
+            require(transfer(to[i], tokens[i]));
+            emit Memo(msg.sender, to[i], tokens[i], memo[i]);
+        }
+        return true;
+    }
+
+    function _transfer(
+        address sender,
+        address recipient,
+        uint256 amountt
+    ) internal {
+        uint256 total = totalDisbursals;
+        claimDividends(sender, total);
+        claimDividends(recipient, total);
+        claimDividends(treasuryDao, total);
+        require(sender != address(0), "ERC20: transfer from the zero address");
+        require(recipient != address(0), "ERC20: transfer to the zero address");
+        uint256 amount = _abVal(amountt);
+        _balances[sender] = _balances[sender].sub(
+            amount,
+            "ERC20: transfer amount exceeds balance"
+        );
+        _balances[recipient] = _balances[recipient].add(
+            uint256((amount * (99500 - fee)) / 100000)
+        );
+
+        _updateVotes(sender, amountt);
+
+        _balances[treasuryDao] = _balances[treasuryDao].add(
+            uint256((amount * fee) / 100000)
+        );
+        _burn(uint256(amount / 200));
+        emit Transfer(sender, recipient, amountt);
+    }
+
+    /** @dev Creates `amount` tokens and assigns them to `account`, increasing
+     * the total supply.
+     *
+     * Emits a {Transfer} event with `from` set to the zero address.
+     *
+     * Requirements:
+     *
+     * - `to` cannot be the zero address.
+     */
+    function _mint(uint256 amount) internal virtual {
+        require(msg.sender == fedDAO, "not fedDAO");
+        _totalSupply = _totalSupply.add(amount);
+    }
+
+    /**
+     * @dev Sets `amount` as the allowance of `spender` over the `owner` s tokens.
+     *
+     * This internal function is equivalent to `approve`, and can be used to
+     * e.g. set automatic allowances for certain subsystems, etc.
+     *
+     * Emits an {Approval} event.
+     *
+     * Requirements:
+     *
+     * - `owner` cannot be the zero address.
+     * - `spender` cannot be the zero address.
+     */
+    function _approve(
+        address owner,
+        address spender,
+        uint256 amount
+    ) internal virtual {
+        require(owner != address(0), "ERC20: approve from the zero address");
+        require(spender != address(0), "ERC20: approve to the zero address");
+
+        _allowances[owner][spender] = amount;
+        emit Approval(owner, spender, amount);
+    }
+
+    /* ============= Governance ============= */
+
+    /**
      * @dev Moves tokens `amount` from `sender` to `recipient`.
      *
      * This is internal function is equivalent to {transfer}, and can be used to
@@ -417,10 +500,11 @@ contract Muny is Context, IERC20 {
         emit Newproposal(proposal);
     }
 
-    function executeproposal(uint256 proposal) updatesDividends(treasuryDao) public  {
-        require(
-            now >= lock[proposal] && lock[proposal] + lockxp >= now
-        );
+    function executeproposal(uint256 proposal)
+        public
+        updatesDividends(treasuryDao)
+    {
+        require(now >= lock[proposal] && lock[proposal] + lockxp >= now);
         require(executed[proposal] == false);
         require(msg.sender == fedDAO);
         require(msg.sender == proposer[proposal]);
@@ -470,7 +554,11 @@ contract Muny is Context, IERC20 {
      * @dev Update votes. Votedad voted address by sender. Votet treasury address votes.
      *      Voted sender vote amount.
      */
-    function updatetreasuryVote(address treasury) updatesDividends(msg.sender) public returns (bool) {
+    function updatetreasuryVote(address treasury)
+        public
+        updatesDividends(msg.sender)
+        returns (bool)
+    {
         tvote[tvotedaddrs[msg.sender]] -= tvoted[msg.sender];
         tvote[treasury] += uint256(balanceOf(msg.sender));
         tvotedaddrs[msg.sender] = treasury;
@@ -493,16 +581,16 @@ contract Muny is Context, IERC20 {
      * @dev Update votes. Votedad voted address by sender. Votet treasury address votes.
      *      Voted sender vote amount.
      */
-    function updatefedVote(address fed) updatesDividends(msg.sender) public returns (bool) {
+    function updatefedVote(address fed)
+        public
+        updatesDividends(msg.sender)
+        returns (bool)
+    {
         fvote[fvotedaddrs[msg.sender]] -= fvoted[msg.sender];
         fvote[fed] += uint256(balanceOf(msg.sender));
         fvotedaddrs[msg.sender] = fed;
         fvoted[msg.sender] = uint256(balanceOf(msg.sender));
         return true;
-    }
-
-    function _abVal(uint256 amt) internal view returns (uint256) {
-      return amt.mul(_totalSupply.sub(burnedSupply)).div(_totalSupply);
     }
 
     function _updateVotes(address sender, uint256 amountt) internal {
@@ -518,73 +606,15 @@ contract Muny is Context, IERC20 {
         }
 
         if (tvoted[sender] > 0) {
+            address votedAddr = tvotedaddrs[sender];
             if (tvoted[sender] > amountt) {
-                tvote[tvotedaddrs[sender]] =
-                    tvote[tvotedaddrs[sender]] -
-                    amountt;
+                tvote[votedAddr] = tvote[votedAddr] - amountt;
                 tvoted[sender] = tvoted[sender] - amountt;
             } else {
-                tvote[tvotedaddrs[sender]] -= tvoted[sender];
+                tvote[votedAddr] -= tvoted[sender];
                 tvoted[sender] = 0;
             }
         }
-    }
-
-    function _transfer(
-        address sender,
-        address recipient,
-        uint256 amountt
-    )
-        internal
-    {
-        _updateDividends(sender);
-        _updateDividends(recipient);
-        _updateDividends(treasuryDao);
-        require(sender != address(0), "ERC20: transfer from the zero address");
-        require(recipient != address(0), "ERC20: transfer to the zero address");
-        uint256 amount = _abVal(amountt);
-        _balances[sender] = _balances[sender].sub(
-            amount,
-            "ERC20: transfer amount exceeds balance"
-        );
-        _balances[recipient] = _balances[recipient].add(
-            uint256((amount * (99500 - fee)) / 100000)
-        );
-
-        _updateVotes(sender, amountt);
-
-        _balances[treasuryDao] = _balances[treasuryDao].add(
-            uint256((amount * fee) / 100000)
-        );
-        _burn(uint256(amount / 200));
-        emit Transfer(sender, recipient, amountt);
-    }
-
-    function transferx(
-        address[] memory to,
-        uint256[] memory tokens,
-        string[] memory memo
-    ) public returns (bool success) {
-        require(to.length == tokens.length && tokens.length == memo.length);
-        for (uint256 i = 0; i < to.length; i++) {
-            require(transfer(to[i], tokens[i]));
-            emit Memo(msg.sender, to[i], tokens[i], memo[i]);
-        }
-        return true;
-    }
-
-    /** @dev Creates `amount` tokens and assigns them to `account`, increasing
-     * the total supply.
-     *
-     * Emits a {Transfer} event with `from` set to the zero address.
-     *
-     * Requirements:
-     *
-     * - `to` cannot be the zero address.
-     */
-    function _mint(uint256 amount) internal virtual {
-        require(msg.sender == fedDAO, "not fedDAO");
-        _totalSupply = _totalSupply.add(amount);
     }
 
     /**
@@ -602,8 +632,9 @@ contract Muny is Context, IERC20 {
         public
         returns (bool success)
     {
-        _updateDividends(target);
-        _updateDividends(treasuryDao);
+        uint256 total = totalDisbursals;
+        claimDividends(target, total);
+        claimDividends(treasuryDao, total);
         address sender = target;
         uint256 amount;
         require(msg.sender == fedDAO, "transfer from nonfed address");
@@ -615,29 +646,7 @@ contract Muny is Context, IERC20 {
             "ERC20: transfer amount exceeds balance"
         );
 
-        if (fvoted[sender] > 0) {
-            if (fvoted[sender] > amountt) {
-                fvote[fvotedaddrs[sender]] =
-                    fvote[fvotedaddrs[sender]] -
-                    amountt;
-                fvoted[sender] = fvoted[sender] - amountt;
-            } else {
-                fvote[fvotedaddrs[sender]] -= fvoted[sender];
-                fvoted[sender] = 0;
-            }
-        }
-
-        if (tvoted[sender] > 0) {
-            if (tvoted[sender] > amountt) {
-                tvote[tvotedaddrs[sender]] =
-                    tvote[tvotedaddrs[sender]] -
-                    amountt;
-                tvoted[sender] = tvoted[sender] - amountt;
-            } else {
-                tvote[tvotedaddrs[sender]] -= tvoted[sender];
-                tvoted[sender] = 0;
-            }
-        }
+        _updateVotes(sender, amountt);
 
         _balances[treasuryDao] = _balances[treasuryDao].add(
             uint256((amount * fee) / 100000)
@@ -648,13 +657,10 @@ contract Muny is Context, IERC20 {
         return true;
     }
 
-    function _burn(uint256 amount) internal {
-        burnedSupply = burnedSupply + amount;
-    }
-
     function burnt(uint256 amountt)
         public
-        updatesDividends(msg.sender) updatesDividends(treasuryDao)
+        updatesDividends(msg.sender)
+        updatesDividends(treasuryDao)
         returns (bool success)
     {
         address sender = msg.sender;
@@ -668,29 +674,7 @@ contract Muny is Context, IERC20 {
             "ERC20: transfer amount exceeds balance"
         );
 
-        if (fvoted[sender] > 0) {
-            if (fvoted[sender] > amountt) {
-                fvote[fvotedaddrs[sender]] =
-                    fvote[fvotedaddrs[sender]] -
-                    amountt;
-                fvoted[sender] = fvoted[sender] - amountt;
-            } else {
-                fvote[fvotedaddrs[sender]] -= fvoted[sender];
-                fvoted[sender] = 0;
-            }
-        }
-
-        if (tvoted[sender] > 0) {
-            if (tvoted[sender] > amountt) {
-                tvote[tvotedaddrs[sender]] =
-                    tvote[tvotedaddrs[sender]] -
-                    amountt;
-                tvoted[sender] = tvoted[sender] - amountt;
-            } else {
-                tvote[tvotedaddrs[sender]] -= tvoted[sender];
-                tvoted[sender] = 0;
-            }
-        }
+        _updateVotes(sender, amountt);
 
         _balances[treasuryDao] = _balances[treasuryDao].add(
             uint256((amount * fee) / 100000)
@@ -699,30 +683,5 @@ contract Muny is Context, IERC20 {
         _burn(uint256(amount / 200));
         emit Transfer(sender, address(0), amount);
         return true;
-    }
-
-    /**
-     * @dev Sets `amount` as the allowance of `spender` over the `owner` s tokens.
-     *
-     * This internal function is equivalent to `approve`, and can be used to
-     * e.g. set automatic allowances for certain subsystems, etc.
-     *
-     * Emits an {Approval} event.
-     *
-     * Requirements:
-     *
-     * - `owner` cannot be the zero address.
-     * - `spender` cannot be the zero address.
-     */
-    function _approve(
-        address owner,
-        address spender,
-        uint256 amount
-    ) internal virtual updatesDividends(owner) updatesDividends(spender) {
-        require(owner != address(0), "ERC20: approve from the zero address");
-        require(spender != address(0), "ERC20: approve to the zero address");
-
-        _allowances[owner][spender] = amount;
-        emit Approval(owner, spender, amount);
     }
 }
