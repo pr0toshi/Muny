@@ -102,7 +102,7 @@ contract Muny is Context, IERC20 {
         _totalSupply = 1000000000000000; // 10**7*10e8
         _balances[treasury] = 1000000000000000;
         emit Transfer(address(0), treasury, 1000000000000000);
-        tlock = 5 days;
+        tlock = 15 minutes;
         fee = 500;
     }
 
@@ -141,7 +141,7 @@ uint256 internal constant _pointMultiplier = 1e8;
         }
     }
 
-    function _disburse(uint256 amount) internal {
+    function _disburse(uint256 amount) public {
         uint256 newDividendPoints = amount.mul(_pointMultiplier).div(totalSupply.sub(burnedSupply));
         require(newDividendPoints < uint64(-1), "Error: Disbursal points do not fit in a uint64.");
         uint256 total = totalDisbursals;
