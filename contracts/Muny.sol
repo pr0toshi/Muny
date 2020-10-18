@@ -108,7 +108,7 @@ contract Muny is Context, IERC20 {
 
     /* Dividends */
 
-uint256 internal constant _pointMultiplier = 1e8;
+    uint256 internal constant _pointMultiplier = 1e8;
     uint256 public totalDisbursals;
     mapping(uint256 => uint256) public packedDisbursals;
     mapping(address => uint256) public lastDisbursalIndex;
@@ -128,9 +128,10 @@ uint256 internal constant _pointMultiplier = 1e8;
     }
 
     function writePoints(
-      uint256 packedPoints,
-      uint256 index,
-      uint256 newPoints)
+        uint256 packedPoints,
+        uint256 index,
+        uint256 newPoints
+    )
         internal
         pure
         returns (uint256 points)
@@ -142,7 +143,7 @@ uint256 internal constant _pointMultiplier = 1e8;
     }
 
     function _disburse(uint256 amount) public {
-        uint256 newDividendPoints = amount.mul(_pointMultiplier).div(totalSupply.sub(burnedSupply));
+        uint256 newDividendPoints = amount.mul(_pointMultiplier).div(_totalSupply.sub(burnedSupply));
         require(newDividendPoints < uint64(-1), "Error: Disbursal points do not fit in a uint64.");
         uint256 total = totalDisbursals;
         uint256 packedIndex = total / 4;
@@ -154,8 +155,12 @@ uint256 internal constant _pointMultiplier = 1e8;
         uint256 packedPoints = packedDisbursals[packedIndex];
         packedDisbursals[packedIndex] = writePoints(packedPoints, relIndex, newDividendPoints);
         totalDisbursals = total + 1;
-    _mint(amount);
+        _mint(amount);
         emit Disbursal(amount);
+    }
+
+    function _updateDividends(address account) internal {
+        claimDividendsOwedUntil(account, totalDisbursals);
     }
 
     modifier updatesDividends(address account) {
@@ -188,9 +193,9 @@ uint256 internal constant _pointMultiplier = 1e8;
         lastDisbursalIndex[account] = until;
     }
 
-function DividendsOwedUntil(address account, uint256 until) public view returns (uint256 bal) {
+    function DividendsOwedUntil(address account, uint256 until) public view returns (uint256 owed) {
         uint256 last = lastDisbursalIndex[account];
-        if (until == last) return;
+        if (until == last) return 0;
         require(until > last, "Dividends already claimed.");
         require(until <= totalDisbursals, "Can not claim dividends that have not been disbursed.");
         uint256 packedIndexStop = until / 4;
@@ -198,31 +203,20 @@ function DividendsOwedUntil(address account, uint256 until) public view returns 
         uint256 packedIndexNext = last / 4;
         uint256 relIndexNext = packedIndexNext % 4;
         uint256 balance = _balances[account];
+        owed = balance;
         uint256 packedPoints = packedDisbursals[packedIndexNext];
         while (packedIndexNext < packedIndexStop) {
             for (; relIndexNext < 4; relIndexNext++) {
-                balance = (balance * readPoints(packedPoints, relIndexNext)) / _pointMultiplier;
+                owed = (owed * readPoints(packedPoints, relIndexNext)) / _pointMultiplier;
             }
             relIndexNext = 0;
             packedPoints = packedDisbursals[++packedIndexNext];
         }
         while (relIndexNext < relIndexStop) {
-            balance = (balance * readPoints(packedPoints, relIndexNext++)) / _pointMultiplier;
+            owed = (owed * readPoints(packedPoints, relIndexNext++)) / _pointMultiplier;
         }
-        return (balance);
+        return owed.sub(balance);
     }
-
-function readPoints(uint256 packedPoints, uint256 index) internal pure returns (uint256 points) {
-        assembly {
-            points := shl(mul(index, 32), packedPoints)
-            points := shr(224, points)
-        }
-    }
-    
-
-
-    
-
     /**
      * @dev Returns the name of the token.
      */
@@ -253,7 +247,7 @@ function readPoints(uint256 packedPoints, uint256 index) internal pure returns (
      * @dev See {IERC20-balanceOf}.
      */
     function balanceOf(address account) public override view returns (uint256) {
-        return DividendsOwedUntil(account).mul(_totalSupply).div(_totalSupply.sub(burnedSupply));
+        return _balances[account].mul(_totalSupply).div(_totalSupply.sub(burnedSupply));
     }
 
     /**
@@ -321,7 +315,7 @@ function readPoints(uint256 packedPoints, uint256 index) internal pure returns (
         address sender,
         address recipient,
         uint256 amount
-    )updateDividends(sender) public virtual override returns (bool) {
+    ) updatesDividends(sender) public virtual override returns (bool) {
         _transfer(sender, recipient, amount);
         _approve(
             sender,
@@ -423,7 +417,7 @@ function readPoints(uint256 packedPoints, uint256 index) internal pure returns (
         emit Newproposal(proposal);
     }
 
-    function executeproposal(uint256 proposal) updateDividends(treasuryDao); public  {
+    function executeproposal(uint256 proposal) updatesDividends(treasuryDao) public  {
         require(
             now >= lock[proposal] && lock[proposal] + lockxp >= now
         );
@@ -476,7 +470,7 @@ function readPoints(uint256 packedPoints, uint256 index) internal pure returns (
      * @dev Update votes. Votedad voted address by sender. Votet treasury address votes.
      *      Voted sender vote amount.
      */
-    function updatetreasuryVote(address treasury) updateDividends(msg.sender); public returns (bool) {
+    function updatetreasuryVote(address treasury) updatesDividends(msg.sender) public returns (bool) {
         tvote[tvotedaddrs[msg.sender]] -= tvoted[msg.sender];
         tvote[treasury] += uint256(balanceOf(msg.sender));
         tvotedaddrs[msg.sender] = treasury;
@@ -499,7 +493,7 @@ function readPoints(uint256 packedPoints, uint256 index) internal pure returns (
      * @dev Update votes. Votedad voted address by sender. Votet treasury address votes.
      *      Voted sender vote amount.
      */
-    function updatefedVote(address fed) updateDividends(msg.sender); public returns (bool) {
+    function updatefedVote(address fed) updatesDividends(msg.sender) public returns (bool) {
         fvote[fvotedaddrs[msg.sender]] -= fvoted[msg.sender];
         fvote[fed] += uint256(balanceOf(msg.sender));
         fvotedaddrs[msg.sender] = fed;
