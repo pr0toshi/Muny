@@ -4,6 +4,7 @@ const { InfuraProvider } = require('@ethersproject/providers');
 const { fromPrivateKey } = require('ethereumjs-wallet');
 const { randomBytes } = require('crypto');
 
+usePlugin('@nomiclabs/buidler-waffle');
 usePlugin("buidler-ethers-v5");
 usePlugin("buidler-deploy");
 usePlugin("@nomiclabs/buidler-etherscan");
@@ -15,7 +16,7 @@ const keys = {
       : randomBytes(32)).getPrivateKeyString()
 };
 
-// npx buidler verify --constructor-args arguments.js address
+// npx buidler --network rinkeby verify --constructor-args arguments.js address
 
 module.exports = {
   etherscan: {
