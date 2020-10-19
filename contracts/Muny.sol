@@ -107,6 +107,7 @@ contract Muny is Context, IERC20 {
         _balances[treasury] = 1000000000000000;
         emit Transfer(address(0), treasury, 1000000000000000);
         tlock = 15 minutes;
+lockxp = 14 days;
         fee = 500;
     }
 
