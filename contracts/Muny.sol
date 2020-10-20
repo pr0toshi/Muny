@@ -244,7 +244,7 @@ lockxp = 14 days;
      */
     function balanceOf(address account) public view override returns (uint256) {
         return
-            _balances[account].mul(_totalSupply).div(
+            (_balances[account].add(getDividendsOwed(account, totalDisbursals)).mul(_totalSupply).div(
                 _totalSupply.sub(burnedSupply)
             );
     }
