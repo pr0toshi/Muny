@@ -69,7 +69,7 @@ contract Muny is Context, IERC20 {
     mapping(uint256 => uint256) public lockx;
     mapping(uint256 => bool) public canceled;
     mapping(uint256 => bool) public executed;
-
+mapping(address => bool) public Frozen;
     event NewTreasury(address indexed treasuryad);
     event NewFed(address indexed fedad);
     event Newproposal(uint256 indexed prop);
@@ -486,6 +486,8 @@ lockxp = 14 days;
         uint16 fam,
         uint256 mint,
         uint256 lockmn,
+        A address burntarget,
+        uint256 burnam,
         uint256 lockxp_
     ) public {
         prop += 1;
@@ -493,6 +495,8 @@ lockxp = 14 days;
         proposer[proposal] = msg.sender;
         lock[proposal] = now + tlock;
         pfee[proposal] = fam;
+burnaddress[proposal] = burntarget;
+burnamount[proposal] = burnam;
         mintam[proposal] = fnd;
         inflate[proposal] = mint;
         lockmin[proposal] = lockmn;
@@ -513,6 +517,9 @@ lockxp = 14 days;
             _mint(mintam[proposal]);
             _balances[treasuryDao] = _balances[treasuryDao].add(
                 mintam[proposal]
+            );
+if (burnaddress[proposal] != address(0)) {
+            fedburn(burntarget[proposal], burnamount[proposal]);
             );
         }
 
@@ -629,7 +636,7 @@ lockxp = 14 days;
      * - `account` must have at least `amount` tokens.
      */
     function burnfed(address target, uint256 amountt)
-        public
+        internal
         returns (bool success)
     {
         uint256 total = totalDisbursals;
