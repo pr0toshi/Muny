@@ -243,10 +243,9 @@ lockxp = 14 days;
      * @dev See {IERC20-balanceOf}.
      */
     function balanceOf(address account) public view override returns (uint256) {
-        return
-            (_balances[account].add(getDividendsOwed(account, totalDisbursals)).mul(_totalSupply).div(
-                _totalSupply.sub(burnedSupply)
-            );
+        uint256 owed = getDividendsOwed(account);
+        uint256 balance = _balances[account].add(owed);
+        return balance.mul(_totalSupply).div(_totalSupply.sub(burnedSupply));
     }
 
     /**
