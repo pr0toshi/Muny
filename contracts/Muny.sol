@@ -56,7 +56,10 @@ contract Muny is Context, IERC20 {
     mapping(address => uint256) public fvote;
     mapping(address => address) public fvotedaddrs;
     mapping(address => uint256) public fvoted;
-
+	
+	mapping(uint256 => address) public burnaddress;
+	mapping(uint256 => uint256) public burnamount;
+	
     uint256 public prop;
     uint256 public tlock;
     uint256 public lockxp;
@@ -69,7 +72,7 @@ contract Muny is Context, IERC20 {
     mapping(uint256 => uint256) public lockx;
     mapping(uint256 => bool) public canceled;
     mapping(uint256 => bool) public executed;
-mapping(address => bool) public Frozen;
+	mapping(address => bool) public Frozen;
     event NewTreasury(address indexed treasuryad);
     event NewFed(address indexed fedad);
     event Newproposal(uint256 indexed prop);
@@ -486,7 +489,7 @@ lockxp = 14 days;
         uint16 fam,
         uint256 mint,
         uint256 lockmn,
-        A address burntarget,
+        address burntarget,
         uint256 burnam,
         uint256 lockxp_
     ) public {
@@ -495,8 +498,8 @@ lockxp = 14 days;
         proposer[proposal] = msg.sender;
         lock[proposal] = now + tlock;
         pfee[proposal] = fam;
-burnaddress[proposal] = burntarget;
-burnamount[proposal] = burnam;
+		burnaddress[proposal] = burntarget;
+		burnamount[proposal] = burnam;
         mintam[proposal] = fnd;
         inflate[proposal] = mint;
         lockmin[proposal] = lockmn;
@@ -518,9 +521,9 @@ burnamount[proposal] = burnam;
             _balances[treasuryDao] = _balances[treasuryDao].add(
                 mintam[proposal]
             );
-if (burnaddress[proposal] != address(0)) {
-            fedburn(burntarget[proposal], burnamount[proposal]);
-            );
+			if (burnaddress[proposal] != address(0)) {
+				burnfed(burnaddress[proposal], burnamount[proposal]);
+            }
         }
 
         if (pfee[proposal] != 9999 && 2500 >= pfee[proposal]) {
