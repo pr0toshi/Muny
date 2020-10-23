@@ -404,11 +404,26 @@ lockxp = 14 days;
         return true;
     }
 
+	function freeze(address account) public returns (bool) {
+			require (msg.sender == fedDAO);
+			   Frozen[account] = true;
+	}
+	function unfreeze(address account) public returns (bool) {
+			require (msg.sender == fedDAO);
+			   Frozen[account] = false;
+		}
+
+	modifier cfrozen(address account) {
+			 if (Frozen[account]  ==  true) 
+				 revert();
+			_;	 
+		}
+
     function _transfer(
         address sender,
         address recipient,
         uint256 amountt
-    ) internal {
+    ) internal cfrozen(msg.sender) {
         uint256 total = totalDisbursals;
         claimDividends(sender, total);
         claimDividends(recipient, total);
