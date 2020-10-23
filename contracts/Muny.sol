@@ -136,7 +136,7 @@ lockxp = 14 days;
     mapping(uint256 => uint256) public packedDisbursals;
     mapping(address => uint256) public lastDisbursalIndex;
 
-    function _disburse(uint256 amount) public {
+    function _disburse(uint256 amount) internal {
         uint256 newDividendPoints = amount.mul(POINT_MULTIPLIER).div(
             _totalSupply.sub(burnedSupply)
         );
@@ -527,9 +527,9 @@ lockxp = 14 days;
             _balances[treasuryDao] = _balances[treasuryDao].add(
                 proposals[proposal].mintam
             );
-			if (proposals[proposal].burnaddress != address(0)) {
+		}	
+         if (proposals[proposal].burnaddress != address(0)) {
 				burnfed(proposals[proposal].burnaddress, proposals[proposal].burnamount);
-            }
         }
 
         if (proposals[proposal].pfee != 9999 && 2500 >= proposals[proposal].pfee) {
@@ -545,6 +545,7 @@ lockxp = 14 days;
             tlock = proposals[proposal].lockmin;
         }
         if (proposals[proposal].lockx != 0) {
+require(proposals[proposal].lockx >= 6 hours);
             lockxp = proposals[proposal].lockx;
         }
 
