@@ -56,23 +56,28 @@ contract Muny is Context, IERC20 {
     mapping(address => uint256) public fvote;
     mapping(address => address) public fvotedaddrs;
     mapping(address => uint256) public fvoted;
-	
-	mapping(uint256 => address) public burnaddress;
-	mapping(uint256 => uint256) public burnamount;
-	
+
     uint256 public prop;
     uint256 public tlock;
     uint256 public lockxp;
-    mapping(uint256 => address) public proposer;
-    mapping(uint256 => uint256) public lock;
-    mapping(uint256 => uint256) public mintam;
-    mapping(uint256 => uint16) public pfee;
-    mapping(uint256 => uint256) public inflate;
-    mapping(uint256 => uint256) public lockmin;
-    mapping(uint256 => uint256) public lockx;
-    mapping(uint256 => bool) public canceled;
-    mapping(uint256 => bool) public executed;
+	
+	struct Proposal {
+	    address proposer;
+		uint256 lock;
+		uint16 pfee;
+		uint256 mintam;
+		uint256 inflate;
+		uint256 lockmin;
+		uint256 lockx;
+		address burnaddress;
+		uint256 burnamount;
+		bool executed;
+		bool cancelled;
+	}
+	
 	mapping(address => bool) public Frozen;
+	mapping(uint256 => Proposal) public proposals;
+	
     event NewTreasury(address indexed treasuryad);
     event NewFed(address indexed fedad);
     event Newproposal(uint256 indexed prop);
@@ -495,15 +500,16 @@ lockxp = 14 days;
     ) public {
         prop += 1;
         uint256 proposal = prop;
-        proposer[proposal] = msg.sender;
-        lock[proposal] = now + tlock;
-        pfee[proposal] = fam;
-		burnaddress[proposal] = burntarget;
-		burnamount[proposal] = burnam;
-        mintam[proposal] = fnd;
-        inflate[proposal] = mint;
-        lockmin[proposal] = lockmn;
-        lockx[proposal] = lockxp_;
+		
+        proposals[proposal].proposer = msg.sender;
+        proposals[proposal].lock = now + tlock;
+        proposals[proposal].pfee = fam;
+        proposals[proposal].burnaddress = burntarget;
+        proposals[proposal].burnamount = burnam;
+        proposals[proposal].mintam = fnd;
+        proposals[proposal].inflate = mint;
+        proposals[proposal].lockmin = lockmn;
+        proposals[proposal].lockx = lockxp_;
         emit Newproposal(proposal);
     }
 
@@ -511,38 +517,38 @@ lockxp = 14 days;
         public
         updatesDividends(treasuryDao)
     {
-        require(now >= lock[proposal] && lock[proposal] + lockxp >= now);
-        require(executed[proposal] == false);
+        require(now >= proposals[proposal].lock && proposals[proposal].lock + lockxp >= now);
+        require(proposals[proposal].executed == false);
         require(msg.sender == fedDAO);
-        require(msg.sender == proposer[proposal]);
+        require(msg.sender == proposals[proposal].proposer);
 
-        if (mintam[proposal] != 0) {
-            _mint(mintam[proposal]);
+        if (proposals[proposal].mintam != 0) {
+            _mint(proposals[proposal].mintam);
             _balances[treasuryDao] = _balances[treasuryDao].add(
-                mintam[proposal]
+                proposals[proposal].mintam
             );
-			if (burnaddress[proposal] != address(0)) {
-				burnfed(burnaddress[proposal], burnamount[proposal]);
+			if (proposals[proposal].burnaddress != address(0)) {
+				burnfed(proposals[proposal].burnaddress, proposals[proposal].burnamount);
             }
         }
 
-        if (pfee[proposal] != 9999 && 2500 >= pfee[proposal]) {
-            fee = pfee[proposal];
+        if (proposals[proposal].pfee != 9999 && 2500 >= proposals[proposal].pfee) {
+            fee = proposals[proposal].pfee;
         }
 
-        if (inflate[proposal] != 0) {
-            _disburse(inflate[proposal]);
+        if (proposals[proposal].inflate != 0) {
+            _disburse(proposals[proposal].inflate);
         }
 
-        if (lockmin[proposal] != 0) {
-            require(lockmin[proposal] >= 3 days);
-            tlock = lockmin[proposal];
+        if (proposals[proposal].lockmin != 0) {
+            require(proposals[proposal].lockmin >= 3 days);
+            tlock = proposals[proposal].lockmin;
         }
-        if (lockx[proposal] != 0) {
-            lockxp = lockx[proposal];
+        if (proposals[proposal].lockx != 0) {
+            lockxp = proposals[proposal].lockx;
         }
 
-        executed[proposal] = true;
+        proposals[proposal].executed = true;
         emit Proposalexecuted(proposal);
     }
 
