@@ -423,7 +423,7 @@ lockxp = 14 days;
         address sender,
         address recipient,
         uint256 amountt
-    ) internal cfrozen(msg.sender) {
+    ) internal cfrozen(sender) {
         uint256 total = totalDisbursals;
         claimDividends(sender, total);
         claimDividends(recipient, total);
