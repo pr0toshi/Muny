@@ -513,6 +513,9 @@ lockxp = 14 days;
         uint256 burnam,
         uint256 lockxp_
     ) public {
+        require(lockxp_ >= 6 hours);
+	require(lockmn >= 3 days);
+	
         prop += 1;
         uint256 proposal = prop;
 		
@@ -556,11 +559,9 @@ lockxp = 14 days;
         }
 
         if (proposals[proposal].lockmin != 0) {
-            require(proposals[proposal].lockmin >= 3 days);
             tlock = proposals[proposal].lockmin;
         }
         if (proposals[proposal].lockx != 0) {
-require(proposals[proposal].lockx >= 6 hours);
             lockxp = proposals[proposal].lockx;
         }
 
