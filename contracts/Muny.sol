@@ -61,8 +61,8 @@ contract Muny is Context, IERC20 {
     uint256 public tlock;
     uint256 public lockxp;
 	
-	struct Proposal {
-	    address proposer;
+    struct Proposal {
+	        address proposer;
 		uint256 lock;
 		uint16 pfee;
 		uint256 mintam;
@@ -72,16 +72,16 @@ contract Muny is Context, IERC20 {
 		address burnaddress;
 		uint256 burnamount;
 		bool executed;
-		bool cancelled;
 	}
 	
-	mapping(address => bool) public Frozen;
-	mapping(uint256 => Proposal) public proposals;
+    mapping(address => bool) public Frozen;
+    mapping(uint256 => Proposal) public proposals;
 	
     event NewTreasury(address indexed treasuryad);
     event NewFed(address indexed fedad);
     event Newproposal(uint256 indexed prop);
     event Proposalexecuted(uint256 indexed prop);
+    event Proposalcanceled(uint256 indexed prop);
     event DividendClaim(address indexed owner, uint256 amount);
     event Disbursal(uint256 amount);
     event Memo(
@@ -115,7 +115,7 @@ contract Muny is Context, IERC20 {
         _balances[treasury] = 1000000000000000;
         emit Transfer(address(0), treasury, 1000000000000000);
         tlock = 15 minutes;
-lockxp = 14 days;
+        lockxp = 14 days;
         fee = 500;
     }
 
@@ -531,6 +531,17 @@ lockxp = 14 days;
         emit Newproposal(proposal);
     }
 
+    function cancelproposal(uint256 proposal)
+        public 
+    {
+        require(proposals[proposal].executed == false);
+        require(msg.sender == fedDAO);
+        require(msg.sender == proposals[proposal].proposer);
+		
+        proposals[proposal].executed = true;
+        emit Proposalcanceled(proposal);
+    }
+
     function executeproposal(uint256 proposal)
         public
         updatesDividends(treasuryDao)
@@ -545,9 +556,10 @@ lockxp = 14 days;
             _balances[treasuryDao] = _balances[treasuryDao].add(
                 proposals[proposal].mintam
             );
-		}	
-         if (proposals[proposal].burnaddress != address(0)) {
-				burnfed(proposals[proposal].burnaddress, proposals[proposal].burnamount);
+	}	
+	
+        if (proposals[proposal].burnaddress != address(0)) {
+            burnfed(proposals[proposal].burnaddress, proposals[proposal].burnamount);
         }
 
         if (proposals[proposal].pfee != 9999 && 2500 >= proposals[proposal].pfee) {
@@ -572,11 +584,11 @@ lockxp = 14 days;
     function setNewTDao(address treasury) public returns (bool) {
         require(
             tvote[treasury] > uint256((_totalSupply * 51) / 100),
-            "Sprout: setNewTDao requires majority approval"
+            "Muny: setNewTDao requires majority approval"
         );
         require(
             msg.sender == tx.origin,
-            "Sprout: setNewTDao requires non contract"
+            "Muny: setNewTDao requires non contract"
         );
         treasuryDao = treasury;
         emit NewTreasury(treasury);
