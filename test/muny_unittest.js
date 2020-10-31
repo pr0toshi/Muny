@@ -374,9 +374,178 @@ describe("Proposal Functions", function() {
     expect(proposal.lockx).to.equal(2);
   });
 
-  it("Should not be called by non fed treasury unfreeze", async function() {
+  it("Should not be called within blocklock time", async function() {
+	await expect(muny.executeproposal(1)).to.be.reverted;
+	
+
+  });
+  it("Should not be called by non fed treasury", async function() {
+	//increase time for block lock
+	await provider.send("evm_increaseTime", [60*60*24*2])  
+	await provider.send("evm_mine")    
+	
 	await expect(muny.executeproposal(1)).to.be.reverted;
   });
 
-  
+  it("Should not execute proposer is not feddao", async function() {
+	await expect(muny.connect(addr1).executeproposal(1)).to.be.reverted;
+  });
+ 
+  it("Should be able to create a proposal from fed dao", async function() {
+	expect(await muny.prop()).to.equal(1);
+	
+	// create new dummy proposal
+	await expect(muny.connect(addr1).newproposal(1,2,3,4,zeroaddress,1,2)).to.emit(muny, "Newproposal");
+	expect(await muny.prop()).to.equal(2);
+	let proposal = await muny.proposals(2);
+	
+	//check the created proposal
+	
+	expect(proposal.proposer).to.equal(addr1.address);
+    expect(proposal.pfee).to.equal(2);
+    expect(proposal.burnaddress).to.equal(zeroaddress);
+    expect(proposal.burnamount).to.equal(1);
+    expect(proposal.mintam).to.equal(1);
+    expect(proposal.inflate).to.equal(3);
+    expect(proposal.lockmin).to.equal(4);
+    expect(proposal.lockx).to.equal(2);
+  });
+
+  it("Should not execute because lockmin is below 3 days", async function() {
+	  
+	await provider.send("evm_increaseTime", [60*60*24*2])  
+	await provider.send("evm_mine")     
+	await expect(muny.connect(addr1).executeproposal(2)).to.be.reverted;
+  });
+
+  it("Should not execute because lockx is below 6 hours", async function() {
+	  
+	// create new dummy proposal
+	await expect(muny.connect(addr1).newproposal(1,2,3,4*60*60*24,zeroaddress,1,2)).to.emit(muny, "Newproposal");
+	expect(await muny.prop()).to.equal(3);
+	let proposal = await muny.proposals(3);
+	
+	//check the created proposal
+	
+	expect(proposal.proposer).to.equal(addr1.address);
+    expect(proposal.pfee).to.equal(2);
+    expect(proposal.burnaddress).to.equal(zeroaddress);
+    expect(proposal.burnamount).to.equal(1);
+    expect(proposal.mintam).to.equal(1);
+    expect(proposal.inflate).to.equal(3);
+    expect(proposal.lockmin).to.equal(4*60*60*24);
+    expect(proposal.lockx).to.equal(2);	  
+	  
+	await provider.send("evm_increaseTime", [60*60*24*2])  
+	await provider.send("evm_mine")     
+	await expect(muny.connect(addr1).executeproposal(3)).to.be.reverted;
+  });
+
+  it("Should execute the proposal with a zero address (no burn)", async function() {
+	  
+	// create new dummy proposal
+	await expect(muny.connect(addr1).newproposal(1,2,3,4*60*60*24,zeroaddress,1,7*60*60)).to.emit(muny, "Newproposal");
+	expect(await muny.prop()).to.equal(4);
+	let proposal = await muny.proposals(4);
+	
+	//check the created proposal
+	expect(proposal.executed).to.equal(false);
+	expect(proposal.proposer).to.equal(addr1.address);
+    expect(proposal.pfee).to.equal(2);
+    expect(proposal.burnaddress).to.equal(zeroaddress);
+    expect(proposal.burnamount).to.equal(1);
+    expect(proposal.mintam).to.equal(1);
+    expect(proposal.inflate).to.equal(3);
+    expect(proposal.lockmin).to.equal(4*60*60*24);
+    expect(proposal.lockx).to.equal(7*60*60);	  
+	  
+	await provider.send("evm_increaseTime", [60*60*24*2])  
+	await provider.send("evm_mine")   
+
+	let treasurydao = await muny.treasuryDao();
+    let treasury_balance = await muny.balanceOf(treasurydao);
+	
+	//let totalsupply = await muny.totalSupply();
+	//let burnedSupply = await muny.burnedSupply();
+	//console.log(totalsupply);
+	//console.log(burnedSupply);
+	
+	// execute proposal
+	await muny.connect(addr1).executeproposal(4);
+	proposal = await muny.proposals(4);
+	
+	expect(proposal.executed).to.equal(true);
+	expect(await muny.fee()).to.equal(2);
+	expect(await muny.lockxp()).to.equal(7*60*60);
+	expect(await muny.tlock()).to.equal(4*60*60*24);
+	
+	//totalsupply = await muny.totalSupply();
+	//burnedSupply = await muny.burnedSupply();
+	//console.log(totalsupply);
+	//console.log(burnedSupply);	
+	
+	expect(await muny.balanceOf(treasurydao)).to.equal(treasury_balance.add(1));
+  });
+ 
 });
+
+
+// proposal functions
+describe("Proposal Functions Burn", function() {
+	
+  // variable to store the deployed smart contract	
+  let muny;	
+  let owner, addr1, addr2, addr3, addr4;
+	
+  // initial deployment of Muny.sol	
+  before(async function() {
+    const Muny = await ethers.getContractFactory("Muny");
+	[owner, addr1, addr2, addr3, addr4] = await ethers.getSigners(); 
+    muny = await Muny.deploy("Muny","MUNY",addr1.address,addr2.address);
+	await muny.deployed();
+  })
+
+  it("Should execute the proposal with a burn", async function() {
+	  
+	// create new dummy proposal
+	await expect(muny.connect(addr1).newproposal(1,2,3,4*60*60*24,addr2.address,1000,7*60*60)).to.emit(muny, "Newproposal");
+	expect(await muny.prop()).to.equal(1);
+	let proposal = await muny.proposals(1);
+	
+	//check the created proposal
+	expect(proposal.executed).to.equal(false);
+	expect(proposal.proposer).to.equal(addr1.address);
+    expect(proposal.pfee).to.equal(2);
+    expect(proposal.burnaddress).to.equal(addr2.address);
+    expect(proposal.burnamount).to.equal(1000);
+    expect(proposal.mintam).to.equal(1);
+    expect(proposal.inflate).to.equal(3);
+    expect(proposal.lockmin).to.equal(4*60*60*24);
+    expect(proposal.lockx).to.equal(7*60*60);	  
+	  
+	await provider.send("evm_increaseTime", [60*60*24*8])  
+	await provider.send("evm_mine")   
+
+	let treasurydao = await muny.treasuryDao();
+    let treasury_balance = await muny.balanceOf(treasurydao);
+	let totalsupply = await muny.totalSupply();
+	let burnedSupply = await muny.burnedSupply();
+	
+	// execute proposal
+	await muny.connect(addr1).executeproposal(1);
+	proposal = await muny.proposals(1);
+	
+	expect(proposal.executed).to.equal(true);
+	expect(await muny.fee()).to.equal(2);
+	expect(await muny.lockxp()).to.equal(7*60*60);
+	expect(await muny.tlock()).to.equal(4*60*60*24);
+	
+	totalsupply = await muny.totalSupply();
+	expect(await muny.burnedSupply()).to.equal(burnedSupply.add(1000/200).add(1000*(99500-500)/100000));
+	burnedSupply = await muny.burnedSupply();
+	
+	// we add the amount to treasury, aubstract the burn amount, increase by butn amount * fee / 100000 and interpolate by the balanceof
+	expect(await muny.balanceOf(treasurydao)).to.equal((treasury_balance.add(1).sub(1000).add(1000*500/100000)).mul(totalsupply).div(totalsupply.sub(burnedSupply)));
+  });  
+  
+});  
