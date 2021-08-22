@@ -111,10 +111,10 @@ contract Muny is Context, IERC20 {
         _decimals = 8;
         treasuryDao = treasury;
         fedDAO = fed;
-        _totalSupply = 1000000000000000; // 10**7*10e8
-        _balances[treasury] = 1000000000000000;
-        emit Transfer(address(0), treasury, 1000000000000000);
-        tlock = 15 minutes;
+        _totalSupply = 10000000000000000; // 100,000,000
+        _balances[treasury] = 10000000000000000;
+        emit Transfer(address(0), treasury, 10000000000000000);
+        tlock = 3 days;
 lockxp = 14 days;
         fee = 500;
     }
