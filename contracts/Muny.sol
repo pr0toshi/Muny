@@ -541,7 +541,6 @@ lockxp = 14 days;
     {
         require(proposals[proposal].executed == false);
         require(msg.sender == fedDAO);
-        require(msg.sender == proposals[proposal].proposer);
 		
         proposals[proposal].executed = true;
         emit Proposalcanceled(proposal);
