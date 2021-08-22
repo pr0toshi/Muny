@@ -519,7 +519,8 @@ lockxp = 14 days;
     ) public {
         require(lockxp_ >= 6 hours);
 	require(lockmn >= 3 days);
-	
+	require(msg.sender == fedDAO);
+
         prop += 1;
         uint256 proposal = prop;
 		
