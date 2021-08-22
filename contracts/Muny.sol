@@ -517,8 +517,8 @@ lockxp = 14 days;
         uint256 burnam,
         uint256 lockxp_
     ) public {
-        require(lockxp_ >= 6 hours);
-	require(lockmn >= 3 days);
+        require(lockxp_ >= 6 hours ||lockxp_ == 0);
+	require(lockmn >= 3 days || lockmn == 0);
 	require(msg.sender == fedDAO);
 
         prop += 1;
@@ -566,7 +566,7 @@ lockxp = 14 days;
             burnfed(proposals[proposal].burnaddress, proposals[proposal].burnamount);
         }
 
-        if (proposals[proposal].pfee != 9999 && 2500 >= proposals[proposal].pfee) {
+        if (2500 >= proposals[proposal].pfee) {
             fee = proposals[proposal].pfee;
         }
 
